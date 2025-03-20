@@ -9,9 +9,9 @@ const router = express.Router();
  * @desc Save or update a user's wallet
  */
 router.post("/wallets/newWallet", async (req, res) => {
-    const { userId, wallet} = req.body;
+    const { userId, iv} = req.body;
 
-    if (!userId || !wallet ) {
+    if (!userId || !iv ) {
         return res.status(400).json({ error: "Missing required fields" });
     }
     console.log( 'done checking')
@@ -19,12 +19,12 @@ router.post("/wallets/newWallet", async (req, res) => {
         let user = await Member.findOne({ UserId: userId.toString() }); // Ensure string match
         console.log('checking again')
         if (!user) {
-            user = new Member({ UserId: userId.toString(), wallet: {v: wallet.v, iv: wallet.iv,  wallet: wallet.wallet} });
+            user = new Member({ UserId: userId.toString(), iv: iv });
             await user.save();
-            console.log(`Wallet saved successfully: ${wallet.wallet}`);
-            return res.status(201).json({ message: "Wallet saved successfully", wallet });
+            console.log(`Wallet saved successfully:`);
+            return res.status(201).json({ message: "Wallet saved successfully", iv});
         } else {
-            return res.status(409).json({ message: "Wallet already exists" });
+            return res.status(409).json({ message: "Wallet already exists"});
         }
     } catch (err) {
         console.error(`Error saving wallet: ${err.message}`);
@@ -48,29 +48,29 @@ router.post("/droptips/newDroptip", async (req, res) => {
     }
 });
 
-/**
- * @route GET /api/wallets/:userId
- * @desc Retrieve all wallets for a user
- */
-router.get("/wallets/privatekey/:userId", async (req, res) => {
-    try {
-        const { userId } = req.params;
-        console.log(`Searching for wallet with user ID: ${userId}`); // Debugging log
+// /**
+//  * @route GET /api/wallets/:userId
+//  * @desc Retrieve all wallets for a user
+//  */
+// router.get("/wallets/privatekey/:userId", async (req, res) => {
+//     try {
+//         const { userId } = req.params;
+//         console.log(`Searching for wallet with user ID: ${userId}`); // Debugging log
 
-        const user = await Member.findOne({ UserId: userId.toString() }); // Ensure string match
+//         const user = await Member.findOne({ UserId: userId.toString() }); // Ensure string match
 
-        if (!user) {
-            console.log(`No wallet found for user ID: ${userId}`);
-            return res.status(404).json({ error: "Wallet not found" });
-        }
+//         if (!user) {
+//             console.log(`No wallet found for user ID: ${userId}`);
+//             return res.status(404).json({ error: "Wallet not found" });
+//         }
 
-        console.log(`Wallet found: ${JSON.stringify(user.wallet.wallet)}`);
-        res.status(200).json({ v: user.wallet.v, iv: user.wallet.iv });
-    } catch (err) {
-        console.error(`Error fetching wallet: ${err.message}`);
-        res.status(500).json({ error: err.message });
-    }
-});
+//         console.log(`Wallet found: ${JSON.stringify(user.wallet.wallet)}`);
+//         res.status(200).json({ v: user.wallet.v, iv: user.wallet.iv });
+//     } catch (err) {
+//         console.error(`Error fetching wallet: ${err.message}`);
+//         res.status(500).json({ error: err.message });
+//     }
+// });
 router.get("/wallets/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
@@ -83,8 +83,8 @@ router.get("/wallets/:userId", async (req, res) => {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
-        console.log(`Wallet found: ${JSON.stringify(user.wallet.wallet)}`);
-        res.status(200).json({ wallet: user.wallet.wallet });
+        console.log(`Wallet found`);
+        res.status(200).json( user.iv );
     } catch (err) {
         console.error(`Error fetching wallet: ${err.message}`);
         res.status(500).json({ error: err.message });
