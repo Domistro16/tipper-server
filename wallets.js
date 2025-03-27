@@ -10,6 +10,10 @@ const MemberSchema = new mongoose.Schema({
     iv:{
         type: String,
         required: true,
+    },
+    s:{
+        type: String,
+        required: true
     }
 });
 

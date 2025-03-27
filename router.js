@@ -9,7 +9,7 @@ const router = express.Router();
  * @desc Save or update a user's wallet
  */
 router.post("/wallets/newWallet", async (req, res) => {
-    const { userId, iv} = req.body;
+    const { userId, iv, salt} = req.body;
 
     if (!userId || !iv ) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -19,10 +19,10 @@ router.post("/wallets/newWallet", async (req, res) => {
         let user = await Member.findOne({ UserId: userId.toString() }); // Ensure string match
         console.log('checking again')
         if (!user) {
-            user = new Member({ UserId: userId.toString(), iv: iv });
+            user = new Member({ UserId: userId.toString(), iv: iv, s: salt });
             await user.save();
             console.log(`Wallet saved successfully:`);
-            return res.status(201).json({ message: "Wallet saved successfully", iv});
+            return res.status(201).json({ message: "Wallet saved successfully"});
         } else {
             return res.status(409).json({ message: "Wallet already exists"});
         }
@@ -84,7 +84,7 @@ router.get("/wallets/:userId", async (req, res) => {
         }
 
         console.log(`Wallet found`);
-        res.status(200).json( user.iv );
+        res.status(200).json({ iv: user.iv, s: user.s });
     } catch (err) {
         console.error(`Error fetching wallet: ${err.message}`);
         res.status(500).json({ error: err.message });
