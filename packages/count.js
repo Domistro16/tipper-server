@@ -13,9 +13,8 @@ const options = {
   };
 
  const response = await fetch(`https://bnb-mainnet.g.alchemy.com/v2/${process.env.VITE_KEY}`, options)
-console.log(response);
- const formatted = response.json();
+ const formatted = await response.json();
 
- const count = parseInt(formatted.data.result, 16)
+ const count = parseInt(formatted.result, 16)
     return count;
 }
