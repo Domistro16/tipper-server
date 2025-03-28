@@ -1,3 +1,4 @@
+import "dotenv/config"
 export async function getPriceInUSD(tokenAddress) {
   try {
     const options = {
@@ -10,7 +11,7 @@ export async function getPriceInUSD(tokenAddress) {
       })
     };
 
-    const res = await fetch(`https://api.g.alchemy.com/prices/v1/${import.meta.env.VITE_KEY}/tokens/by-address`, options);
+    const res = await fetch(`https://api.g.alchemy.com/prices/v1/${process.env.VITE_KEY}/tokens/by-address`, options);
     const jsonResponse = await res.json(); // ✅ Parse response as JSON
 
     console.log(jsonResponse); // Log full response to debug

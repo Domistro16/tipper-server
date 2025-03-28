@@ -1,3 +1,4 @@
+import "dotenv/config"
 export const getCount = async (address) => {
 
 const options = {
@@ -10,8 +11,8 @@ const options = {
       method: 'eth_getTransactionCount'
     })
   };
-  
- const response = await fetch(`https://bnb-mainnet.g.alchemy.com/v2/${import.meta.env.VITE_KEY}`, options)
+
+ const response = await fetch(`https://bnb-mainnet.g.alchemy.com/v2/${process.env.VITE_KEY}`, options)
 
  const formatted = response.json();
 

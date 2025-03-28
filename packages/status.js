@@ -1,7 +1,8 @@
+import "dotenv/config"
 import { Alchemy, Network } from "alchemy-sdk";
 
 const settings = {
-  apiKey: import.meta.env.VITE_KEY, // Replace with your Alchemy API Key.
+  apiKey: process.env.VITE_KEY, // Replace with your Alchemy API Key.
   network: Network.BNB_MAINNET, // Replace with your network.
 };
 const alchemy = new Alchemy(settings);

@@ -1,9 +1,10 @@
 import { Network, Alchemy } from "alchemy-sdk";
 import Web3 from "web3";
+import "dotenv/config"
   // Main function to calculate total BNB value
   const web3 = new Web3('https://bsc-dataseed.binance.org/');
   const settings = {
-    apiKey: import.meta.env.VITE_KEY, // Replace with your Alchemy API Key.
+    apiKey: process.env.VITE_KEY, // Replace with your Alchemy API Key.
     network: Network.BNB_MAINNET, // Replace with your network.
   };
   const alchemy = new Alchemy(settings);
