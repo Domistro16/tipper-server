@@ -1,5 +1,4 @@
 import { Network, Alchemy } from "alchemy-sdk";
-import { getPriceInUSD } from './getPrice';
 import Web3 from "web3";
   // Main function to calculate total BNB value
   const web3 = new Web3('https://bsc-dataseed.binance.org/');
