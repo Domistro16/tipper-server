@@ -103,7 +103,7 @@ export async function calculateTotalBNBValue(address) {
       balance: balance,
       symbol: metadata.symbol
     })
-    console.log(`${i++}. ${metadata.name}: ${balance} ${metadata.symbol} and ${value} USD`);
+    console.log(`${i++}. ${metadata.name}: ${balance} ${metadata.symbol}`);
     }
     let status = '';
     if(whale){
