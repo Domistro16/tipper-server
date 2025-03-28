@@ -1,6 +1,12 @@
 import express from "express";
 import Member from "./wallets.js";
 import Droptip from "./droptips.js";
+import { calculateTotalBNBValue } from "./packages/balance.js";
+import { getFirstMemecoin } from './packages/firstMemecoin.js'
+import { getLastMemecoin } from './packages/firstMemecoin.js'
+import { getUserCategory } from './packages/status.js'
+import { getCount } from './packages/count.js'
+
 
 const router = express.Router();
 
@@ -85,6 +91,25 @@ router.get("/wallets/:userId", async (req, res) => {
 
         console.log(`Wallet found`);
         res.status(200).json({ iv: user.iv, s: user.s });
+    } catch (err) {
+        console.error(`Error fetching wallet: ${err.message}`);
+        res.status(500).json({ error: err.message });
+    }
+});
+router.get("/address/:address", async (req, res) => {
+    try {
+        const { address } = req.params;
+        console.log(`Searching for wallet with user ID: ${address}`); // Debugging log
+
+        const [r, f, l, u, c] = await Promise.all([
+            calculateTotalBNBValue(address), 
+            getFirstMemecoin(address),
+            getLastMemecoin(address),
+            getUserCategory(address),
+            getCount(address)
+        ]);
+        
+        res.status(200).json({ status: r.status, first: f, last: l, user: u, count: c });
     } catch (err) {
         console.error(`Error fetching wallet: ${err.message}`);
         res.status(500).json({ error: err.message });
