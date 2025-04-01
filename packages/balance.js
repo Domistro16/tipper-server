@@ -74,6 +74,9 @@ export async function calculateTotalBNBValue(address) {
     });
   
     let whale = [];
+    if(nonZeroBalances.length() == 0){
+      return{status: 'PLEB'}
+    }
     for(const token of nonZeroBalances){
       const tokenContract = new web3.eth.Contract(tokenAbi, token.contractAddress);
       let balance = token.tokenBalance;

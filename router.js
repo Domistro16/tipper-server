@@ -132,6 +132,24 @@ router.get("/droptips/:droptipId", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+router.get("/droptips/rel/", async (req, res) => {
+    const { droptipId } = req.params;
+
+    try {
+        const drops = await Droptip.find({ "droptip.available": true }).toArray();
+
+        if (!drops) {
+            return res.status(404).json({ error: "drops not found" });
+        }
+        res.status(200).json({drops: drops});
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 router.post("/droptips/updateDroptip", async (req, res) => {
     const { droptipId, droptip } = req.body;
 
