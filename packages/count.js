@@ -1,5 +1,6 @@
 import "dotenv/config"
 export const getCount = async (address) => {
+  try{
 
 const options = {
     method: 'POST',
@@ -17,4 +18,7 @@ const options = {
 
  const count = parseInt(formatted.result, 16)
     return count;
+}catch(error){
+  return 0;
+}
 }

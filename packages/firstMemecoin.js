@@ -8,6 +8,7 @@ const settings = {
 const alchemy = new Alchemy(settings);
 
 export async function getFirstMemecoin(address) {
+  try{
   const response = await alchemy.core.getAssetTransfers({
     fromAddress: address,
     category: ["erc20"],
@@ -19,10 +20,14 @@ export async function getFirstMemecoin(address) {
 
   const name = metadata.name
   return (name);
+}catch(error){
+  return('null')
+}
 
 }
 
 export async function getLastMemecoin(address) {
+  try{
   const response = await alchemy.core.getAssetTransfers({
     toAddress: address,
     category: ["erc20"],
@@ -36,5 +41,8 @@ export async function getLastMemecoin(address) {
 
   const name = metadata.name
   return (name);
+}catch(error){
+  return ('null')
+}
 
 }

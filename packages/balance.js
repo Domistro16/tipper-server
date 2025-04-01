@@ -74,7 +74,7 @@ export async function calculateTotalBNBValue(address) {
     });
   
     let whale = [];
-    if(nonZeroBalances.length() == 0){
+    if(nonZeroBalances.length == 0){
       return{status: 'PLEB'}
     }
     for(const token of nonZeroBalances){
