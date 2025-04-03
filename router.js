@@ -10,6 +10,7 @@ import { PinataSDK } from "pinata"
 import multer from "multer" 
 import stream from "stream"
 import FormData from "form-data"
+import { Blob } from "buffer"
 import "dotenv/config"
 
 const pinata = new PinataSDK({
@@ -165,14 +166,10 @@ router.post("/nft/upload", upload.single("file"), async (req, res) =>{
     try {
         console.log("File received:", req.file);
         if (!req.file) return res.status(400).json({ error: "No file uploaded" })
-        const bufferStream = new stream.PassThrough();
-        bufferStream.end(req.file.buffer);
-
-        // Prepare FormData
-        const formData = new FormData();
-        formData.append("file", bufferStream, { filename: req.file.originalname });
-
-        const upload = await pinata.upload.public.file(formData);
+        
+            const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+            const file = new File([blob], req.file.originalname, { type: req.file.mimetype });
+        const upload = await pinata.upload.public.file(file);
         url = "https://gateway.pinata.cloud/ipfs/" + upload.cid
         res.status(200).json({message: 'Files uploaded successfully', url: url})
     }catch(error){
@@ -188,7 +185,7 @@ router.post("/nft/uploadMetadata", async (req, res) => {
             return res.status(400).json({ error: "No metadata provided" });
         }
 
-        const upload = await pinata.upload.public.json(metadata);
+        const upload = await pinata.upload.public.file(metadata);
         const url = "https://gateway.pinata.cloud/ipfs/" + upload.cid;
         
         res.status(200).json({ message: "Metadata uploaded successfully", url });
