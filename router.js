@@ -7,10 +7,11 @@ import { getLastMemecoin } from './packages/firstMemecoin.js'
 import { getUserCategory } from './packages/status.js'
 import { getCount } from './packages/count.js'
 import { PinataSDK } from "pinata"
+import "dotenv/config"
 
 const pinata = new PinataSDK({
-    pinataJwt: `${import.meta.env.VITE_PINATA_JWT}`,
-    pinataGateway: `${import.meta.env.VITE_GATEWAY_URL}`,
+    pinataJwt: `${process.env.VITE_PINATA_JWT}`,
+    pinataGateway: `${process.env.VITE_GATEWAY_URL}`,
   })
 
 const router = express.Router();
