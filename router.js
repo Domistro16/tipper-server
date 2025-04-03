@@ -6,7 +6,12 @@ import { getFirstMemecoin } from './packages/firstMemecoin.js'
 import { getLastMemecoin } from './packages/firstMemecoin.js'
 import { getUserCategory } from './packages/status.js'
 import { getCount } from './packages/count.js'
+import { PinataSDK } from "pinata"
 
+const pinata = new PinataSDK({
+    pinataJwt: `${import.meta.env.VITE_PINATA_JWT}`,
+    pinataGateway: `${import.meta.env.VITE_GATEWAY_URL}`,
+  })
 
 const router = express.Router();
 
@@ -148,6 +153,17 @@ router.get("/droptips/rel/", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+router.post("/nft/upload", async (req, res) =>{
+    const { file } = req.body;
+    try{
+        const upload = await pinata.upload.public.file(file)
+        url = "https://gateway.pinata.cloud/ipfs/" + upload.cid
+        res.status(200).json({message: 'Files uploaded successfully', url: url})
+    }catch(error){
+        res.status(500).json({error: error.message});
+    }
+})
 
 
 router.post("/droptips/updateDroptip", async (req, res) => {
