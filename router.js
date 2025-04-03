@@ -163,8 +163,13 @@ router.post("/nft/upload", upload.single("file"), async (req, res) =>{
     try {
         console.log("File received:", req.file);
         if (!req.file) return res.status(400).json({ error: "No file uploaded" })
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(req.file.buffer);
+
+        // Prepare FormData
         const formData = new FormData();
-        formData.append("file", req.file.buffer, { filename: req.file.originalname });;
+        formData.append("file", bufferStream, { filename: req.file.originalname });
+
         const upload = await pinata.upload.public.file(formData);
         url = "https://gateway.pinata.cloud/ipfs/" + upload.cid
         res.status(200).json({message: 'Files uploaded successfully', url: url})
