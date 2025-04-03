@@ -158,6 +158,7 @@ router.get("/droptips/rel/", async (req, res) => {
 router.post("/nft/upload", async (req, res) =>{
     const { file } = req.body;
     try{
+            console.log('uploading');
         const upload = await pinata.upload.public.file(file)
         url = "https://gateway.pinata.cloud/ipfs/" + upload.cid
         res.status(200).json({message: 'Files uploaded successfully', url: url})
