@@ -8,6 +8,8 @@ import { getUserCategory } from './packages/status.js'
 import { getCount } from './packages/count.js'
 import { PinataSDK } from "pinata"
 import multer from "multer" 
+import stream from "stream"
+import FormData from "form-data"
 import "dotenv/config"
 
 const pinata = new PinataSDK({
