@@ -7,12 +7,16 @@ import { getLastMemecoin } from './packages/firstMemecoin.js'
 import { getUserCategory } from './packages/status.js'
 import { getCount } from './packages/count.js'
 import { PinataSDK } from "pinata"
+import multer from "multer" 
 import "dotenv/config"
 
 const pinata = new PinataSDK({
     pinataJwt: `${process.env.VITE_PINATA_JWT}`,
     pinataGateway: `${process.env.VITE_GATEWAY_URL}`,
   })
+
+  const upload = multer({ storage: multer.memoryStorage() });
+
 
 const router = express.Router();
 
@@ -155,11 +159,11 @@ router.get("/droptips/rel/", async (req, res) => {
     }
 });
 
-router.post("/nft/upload", async (req, res) =>{
-    const { file } = req.body;
-    try{
-        console.log('uploading');
-        const upload = await pinata.upload.public.file(file)
+router.post("/nft/upload", upload.single("file"), async (req, res) =>{
+    try {
+        console.log("File received:", req.file);
+        if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+        const upload = await pinata.upload.public.file(req.file.buffer);
         url = "https://gateway.pinata.cloud/ipfs/" + upload.cid
         res.status(200).json({message: 'Files uploaded successfully', url: url})
     }catch(error){
@@ -167,6 +171,23 @@ router.post("/nft/upload", async (req, res) =>{
         console.log(error)
     }
 })
+
+router.post("/nft/uploadMetadata", async (req, res) => {
+    try {
+        const metadata = req.body;
+        if (!metadata) {
+            return res.status(400).json({ error: "No metadata provided" });
+        }
+
+        const upload = await pinata.upload.public.json(metadata);
+        const url = "https://gateway.pinata.cloud/ipfs/" + upload.cid;
+        
+        res.status(200).json({ message: "Metadata uploaded successfully", url });
+    } catch (error) {
+        console.error("Metadata upload error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 
 router.post("/droptips/updateDroptip", async (req, res) => {
