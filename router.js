@@ -185,7 +185,7 @@ router.post("/nft/uploadMetadata", async (req, res) => {
             return res.status(400).json({ error: "No metadata provided" });
         }
 
-        const upload = await pinata.upload.public.file(metadata);
+        const upload = await pinata.upload.public.json(metadata);
         const url = "https://gateway.pinata.cloud/ipfs/" + upload.cid;
         
         res.status(200).json({ message: "Metadata uploaded successfully", url });
