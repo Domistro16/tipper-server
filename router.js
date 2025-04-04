@@ -8,13 +8,11 @@ import { getUserCategory } from './packages/status.js'
 import { getCount } from './packages/count.js'
 import { PinataSDK } from "pinata"
 import multer from "multer" 
-import stream from "stream"
-import FormData from "form-data"
 import { Blob } from "buffer"
 import "dotenv/config"
 
 const pinata = new PinataSDK({
-    pinataJwt: `${process.env.VITE_PINATA_JWT}`,
+    pinataJwt: `${process.env.JWT}`,
     pinataGateway: `${process.env.VITE_GATEWAY_URL}`,
   })
 
