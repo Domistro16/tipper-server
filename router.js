@@ -162,13 +162,14 @@ router.get("/droptips/rel/", async (req, res) => {
 
 router.post("/nft/upload", upload.single("file"), async (req, res) =>{
     try {
+        let url = ''
         console.log("File received:", req.file);
         if (!req.file) return res.status(400).json({ error: "No file uploaded" })
         
             const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
             const file = new File([blob], req.file.originalname, { type: req.file.mimetype });
         const upload = await pinata.upload.public.file(file);
-        url = "https://gateway.pinata.cloud/ipfs/" + upload.cid
+        url = "https://jade-obliged-caribou-149.mypinata.cloud//ipfs/" + upload.cid
         res.status(200).json({message: 'Files uploaded successfully', url: url})
     }catch(error){
         res.status(500).json({error: error.message});
@@ -184,9 +185,9 @@ router.post("/nft/uploadMetadata", async (req, res) => {
         }
 
         const upload = await pinata.upload.public.json(metadata);
-        const url = "https://gateway.pinata.cloud/ipfs/" + upload.cid;
+        const url = "https://jade-obliged-caribou-149.mypinata.cloud/ipfs/" + upload.cid;
         
-        res.status(200).json({ message: "Metadata uploaded successfully", url });
+        res.status(200).json({ message: "Metadata uploaded successfully", url: url });
     } catch (error) {
         console.error("Metadata upload error:", error);
         res.status(500).json({ error: error.message });
