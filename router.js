@@ -169,7 +169,7 @@ router.post("/nft/upload", upload.single("file"), async (req, res) =>{
             const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
             const file = new File([blob], req.file.originalname, { type: req.file.mimetype });
         const upload = await pinata.upload.public.file(file);
-        url = "https://jade-obliged-caribou-149.mypinata.cloud//ipfs/" + upload.cid
+        url = "https://jade-obliged-caribou-149.mypinata.cloud/ipfs/" + upload.cid
         res.status(200).json({message: 'Files uploaded successfully', url: url})
     }catch(error){
         res.status(500).json({error: error.message});
