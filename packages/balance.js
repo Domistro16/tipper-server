@@ -13,8 +13,8 @@ import "dotenv/config"
     KRAKEN: { min: 15,  tag: "KRAKEN" },
     WHALE: { min: 14, tag: "WHALE" },
     SHARK: { min: 10, tag: "SHARK" },
-    FISH: { min: 5, tag: "FISH" },
-    PLEB: { min: 0.1, tag: "PLEB" }
+    DOLPHIN: { min: 5, tag: "DOLPHIN" },
+    FISH: { min: 0.1, tag: "FISH" }
 };
 
 const tokenAbi = [
@@ -39,10 +39,10 @@ const tokenAbi = [
   }
 ]
 const getWhaleStatus = (balance) => { 
-  if (balance < WHALE_STATUS.PLEB.min || balance == Infinity) {
-      return WHALE_STATUS.PLEB;
-  } else if (balance <= WHALE_STATUS.FISH.min) {
+  if (balance < WHALE_STATUS.FISH.min || balance == Infinity) {
       return WHALE_STATUS.FISH;
+  } else if (balance <= WHALE_STATUS.DOLPHIN.min) {
+      return WHALE_STATUS.DOLPHIN;
   } else if (balance <= WHALE_STATUS.SHARK.min) {
       return WHALE_STATUS.SHARK;
   } else if(balance <= WHALE_STATUS.WHALE.min){
@@ -75,7 +75,7 @@ export async function calculateTotalBNBValue(address) {
   
     let whale = [];
     if(nonZeroBalances.length == 0){
-      return{status: 'PLEB'}
+      return{status: 'FISH'}
     }
     for(const token of nonZeroBalances){
       const tokenContract = new web3.eth.Contract(tokenAbi, token.contractAddress);
@@ -117,9 +117,9 @@ export async function calculateTotalBNBValue(address) {
             status = "WHALE";
     } else if(whale.find((element) => element === "SHARK")){
             status = "SHARK"
-    }else if(whale.find((element) => element === "FISH")){
-            status = "FISH";
-    }else{ status = "PLEB"}
+    }else if(whale.find((element) => element === "DOLPHIN")){
+            status = "DOLPHIN";
+    }else{ status = "FISH"}
 }
 
     
