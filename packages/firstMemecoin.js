@@ -10,7 +10,7 @@ const alchemy = new Alchemy(settings);
 export async function getFirstMemecoin(address) {
   try{
   const response = await alchemy.core.getAssetTransfers({
-    fromAddress: address,
+    toAddress: address,
     category: ["erc20"],
   });
 
