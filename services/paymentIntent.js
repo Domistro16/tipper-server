@@ -2,8 +2,8 @@
 import crypto from "crypto";
 import axios from "axios";
 import { ethers } from "ethers";
-import contractAbi from "./abis/Controller.json"; // your compiled ABI
-import priceAbi from  ".abis/Price.json"
+import contractAbi from "../abis/Controller.json"; // your compiled ABI
+import priceAbi from  "../abis/Price.json"
 import "dotenv/config";
 
 const HMAC_SECRET = process.env.PAYMENT_HMAC_SECRET;
