@@ -10,9 +10,9 @@ const redisOpts = {
   host: process.env.REDIS_INTERNAL_HOST || "127.0.0.1",
   port: Number(process.env.REDIS_PORT) || 6379,
 };
-const redisClient = new Redis(redisOpts);
+const redisClient = new Redis(process.env.REDIS_INTERNAL_HOST);
 
-const mintQueue = new Queue("mintQueue", { redis: redisOpts });
+const mintQueue = new Queue("mintQueue", { redis: process.env.REDIS_INTERNAL_HOST });
 
 // ─── Exported helpers ───────────────────────────────────────────────────────────
 
