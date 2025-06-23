@@ -88,3 +88,28 @@ export async function calculatePrice(req, res) {
 
   return res.json({ amount, currency, txRef, ts, hash });
 }
+
+/**
+ * Verifies that a given payment-intent payload matches its HMAC.
+ * Use this in your webhook to guard against tampering.
+ *
+ * @param {object} params
+ * @param {string} params.domain
+ * @param {string} params.duration
+ * @param {number} params.amount
+ * @param {string} params.currency
+ * @param {string} params.txRef
+ * @param {number} params.ts
+ * @param {string} params.hash
+ */
+export function verifyHash({ domain, duration, amount, currency, txRef, ts, hash }) {
+  const payload  = [domain, duration, amount, currency, txRef, ts].join('|')
+  const expected = crypto.createHmac('sha256', HMAC_SECRET)
+                         .update(payload)
+                         .digest('hex')
+  // timingSafeEqual guards against subtle timing attacks
+  return crypto.timingSafeEqual(
+    Buffer.from(expected, 'hex'),
+    Buffer.from(hash,     'hex'),
+  )
+}
