@@ -12,8 +12,8 @@ import { Blob } from "buffer";
 import "dotenv/config";
 import bodyParser from "body-parser";
 import crypto from "crypto";
-import { verifyHash, computeAmount } from "./services/paymentIntent";
-import { queueMint, isTxRefUsed, markTxRefUsed } from "./mintQueue";
+import { verifyHash, computeAmount } from "./services/paymentIntent.js";
+import { queueMint, isTxRefUsed, markTxRefUsed } from "./mintQueue.js";
 import "dotenv/config";
 
 const pinata = new PinataSDK({

@@ -2,7 +2,6 @@ import "dotenv/config";
 import Queue from "bull";
 import Redis from "ioredis";
 import { ethers } from "ethers";
-import { encodeAbi } from "ethers";
 import contractAbi from "./abis/MintContract.json"; // your compiled ABI
 import { AbiCoder } from "ethers";
 
