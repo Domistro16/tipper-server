@@ -1,4 +1,4 @@
-import "dotenv/config"
+import "dotenv/config";
 import Queue from "bull";
 import Redis from "ioredis";
 import { ethers } from "ethers";
@@ -8,7 +8,7 @@ import { AbiCoder } from "ethers";
 
 // ─── Redis & Queue setup ───────────────────────────────────────────────────────
 const redisOpts = {
-  host: process.env.REDIS_HOST || "127.0.0.1",
+  host: process.env.REDIS_INTERNAL_HOST || "127.0.0.1",
   port: Number(process.env.REDIS_PORT) || 6379,
 };
 const redisClient = new Redis(redisOpts);
@@ -43,8 +43,7 @@ export async function markTxRefUsed(txRef) {
 // ─── Worker: process jobs and call your contract ────────────────────────────────
 
 mintQueue.process(async (job) => {
-  const { userWallet, domain, registerparams, paymentProof } =
-    job.data;
+  const { userWallet, domain, registerparams, paymentProof } = job.data;
 
   // 1) Setup ethers.js
   const provider = new ethers.providers.JsonRpcProvider(
