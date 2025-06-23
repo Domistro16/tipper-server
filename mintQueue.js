@@ -2,7 +2,7 @@ import "dotenv/config";
 import Queue from "bull";
 import Redis from "ioredis";
 import { ethers } from "ethers";
-import contractAbi from "./abis/Controller.json"; // your compiled ABI
+import contractAbi from "./abis/Controller.json" assert { type: "json" }; // your compiled ABI
 import { AbiCoder } from "ethers";
 
 // ─── Redis & Queue setup ───────────────────────────────────────────────────────
