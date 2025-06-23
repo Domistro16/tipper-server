@@ -34,7 +34,7 @@ function verifyFlutterwaveSignature(raw, sig) {
 }
 
 router.post("/api/calculate-price", async (req, res) => {
-  const { domain, duration, currency } = req.body;
+  const { domain, duration, currency, lifetime } = req.body;
   if (!domain || !duration || !currency) {
     return res
       .status(400)
@@ -43,7 +43,7 @@ router.post("/api/calculate-price", async (req, res) => {
 
   try {
     // 1) Compute the amount in the requested currency
-    const amount = await computeAmount(domain, duration, currency);
+    const amount = await computeAmount(domain, duration, currency, lifetime);
 
     // 2) Generate a unique txRef and timestamp
     const txRef = `mint_${Date.now()}`;

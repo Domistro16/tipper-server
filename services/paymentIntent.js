@@ -36,7 +36,7 @@ async function getRates() {
  * @param {number} duration        // e.g. "3years"
  * @param {string} currencyCode    // e.g. "NGN", "EUR", "GBP", "USD"
  */
-export async function computeAmount(domain, duration, currencyCode) {
+export async function computeAmount(domain, duration, currencyCode, lifetime) {
   // 1) Base USD price logic (you choose your algorithm)
   const provider = new ethers.JsonRpcProvider(
     process.env.ETH_PROVIDER_URL
@@ -51,7 +51,7 @@ export async function computeAmount(domain, duration, currencyCode) {
     priceAbi,
     provider
   )
-  const priceData = await controller.rentPrice(domain, duration);
+  const priceData = await controller.rentPrice(domain, duration, lifetime);
   
   const bnb = (priceData.base + priceData.premium) / 1e18
   const { answer} = priceOracle.latestRoundData()
@@ -74,8 +74,8 @@ export async function computeAmount(domain, duration, currencyCode) {
 
 // 4) Your existing calculate-intent endpoint now just passes through
 export async function calculatePrice(req, res) {
-  const { domain, duration, currency } = req.body;
-  const amount = await computeAmount(domain, duration, currency);
+  const { domain, duration, currency, lifetime } = req.body;
+  const amount = await computeAmount(domain, duration, currency, lifetime);
   const txRef = `mint_${Date.now()}`;
   const ts = Math.floor(Date.now() / 1000);
 
