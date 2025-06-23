@@ -27,6 +27,7 @@ const router = express.Router();
 router.use(bodyParser.json());
 
 const FW_SECRET = process.env.FLUTTERWAVE_WEBHOOK_SECRET;
+const HMAC_SECRET = process.env.PAYMENT_HMAC_SECRET;
 
 function verifyFlutterwaveSignature(raw, sig) {
   const comp = crypto.createHmac("sha256", FW_SECRET).update(raw).digest("hex");
