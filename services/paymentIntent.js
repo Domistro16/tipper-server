@@ -53,9 +53,9 @@ export async function computeAmount(domain, duration, currencyCode, lifetime) {
   )
   const priceData = await controller.rentPrice(domain, duration, lifetime);
   
-  const bnb = (priceData.base + priceData.premium) / 1e18
+  const bnb = (Number(priceData.base) + Number(priceData.premium)) / 1e18
   const { answer} = priceOracle.latestRoundData()
-  const baseUsd = bnb * (answer / 1e8)
+  const baseUsd = bnb * (Number(answer) / 1e8)
   // 2) If they want USD, just return it
   if (currencyCode === "USD") {
     return Math.ceil(baseUsd);
