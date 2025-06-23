@@ -12,7 +12,7 @@ import { Blob } from "buffer";
 import "dotenv/config";
 import bodyParser from "body-parser";
 import crypto from "crypto";
-import { verifyHash, computeAmount } from "./paymentIntent";
+import { verifyHash, computeAmount } from "./services/paymentIntent";
 import { queueMint, isTxRefUsed, markTxRefUsed } from "./mintQueue";
 import "dotenv/config";
 
