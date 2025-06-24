@@ -62,7 +62,7 @@ mintQueue.process(async (job) => {
   const abiCoder = new AbiCoder();
  const proofBytes = ethers.randomBytes(32).toString('hex'); // Replace with actual proof encoding logic
 
-  const commitment = await contract.makeCommittment(
+  const commitment = await contract.makeCommitment(
     domain,
     userWallet,
     registerparams.duration,
