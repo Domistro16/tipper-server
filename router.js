@@ -69,6 +69,7 @@ router.post("/api/calculate-price", async (req, res) => {
       .update(payload)
       .digest("hex");
     console.log("Generated hash:", hash);
+    console.log(txRef, ts);
 
     // 4) Return everything your frontend needs
     return res.json({ amount, currency, txRef, ts, hash });
@@ -98,9 +99,14 @@ router.post("/flutterwave-webhook", async (req, res) => {
     duration,
     ts,
     hash,
-    tx_ref: txRef,
   } = response.data.meta;
-  const { amount, currency, customer, id: flutterwaveId } = response.data;
+  const {
+    amount,
+    currency,
+    customer,
+    id: flutterwaveId,
+    tx_ref: txRef,
+  } = response.data;
   const params = JSON.parse(registerparams);
   const domain = params.domain;
   if (!verifyHash({ domain, duration, amount, currency, txRef, ts, hash })) {
