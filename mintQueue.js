@@ -42,7 +42,7 @@ export async function markTxRefUsed(txRef) {
 // ─── Worker: process jobs and call your contract ────────────────────────────────
 
 mintQueue.process(async (job) => {
-  const { userWallet, domain, registerparams, paymentProof } = job.data;
+  const { userWallet, domain, params: registerparams, paymentProof } = job.data;
 
   // 1) Setup ethers.js
   const provider = new JsonRpcProvider(
@@ -63,7 +63,7 @@ mintQueue.process(async (job) => {
  const proofBytes = ethers.randomBytes(32).toString('hex'); // Replace with actual proof encoding logic
 
   const commitment = await contract.makeCommittment(
-    registerparams.domain,
+    domain,
     userWallet,
     registerparams.duration,
     proofBytes,
