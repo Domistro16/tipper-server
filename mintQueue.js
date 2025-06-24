@@ -83,7 +83,7 @@ mintQueue.process(async (job) => {
   console.log(`🟡 [mintQueue] Minting domain="${domain}" for ${userWallet}`);
   const tx = await contract.registerWithCard(
     registerparams.domain,
-    registerparams.address,
+    registerparams.walletAddress,
     registerparams.duration,
     proofBytes,
     registerparams.resolver,
