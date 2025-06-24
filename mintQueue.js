@@ -60,7 +60,7 @@ mintQueue.process(async (job) => {
 
   // 2) ABI-encode the paymentProof struct into bytes
   const abiCoder = new AbiCoder();
- const proofBytes = crypto.randomBytes(32); // Replace with actual proof encoding logic
+ const proofBytes = ethers.randomBytes(32).toString('hex'); // Replace with actual proof encoding logic
 
   const commitment = await contract.makeCommittment(
     registerparams.domain,
