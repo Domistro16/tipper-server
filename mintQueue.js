@@ -81,7 +81,7 @@ console.log(`🟡 [mintQueue] Using proofBytes: ${proofBytes}`);
     console.log(`🟡 [mintQueue] commitment: commitment=${commitment}`);
 
   await contract.commit(commitment);
-  const waitMs = Number(minAge) * 1000 + 5000;
+  const waitMs = Number(60) * 1000 + 5000;
   console.log(`waiting ${waitMs / 1000}s for commitment age...`);
   await new Promise((r) => setTimeout(r, waitMs));
 
