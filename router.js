@@ -84,9 +84,11 @@ router.post("/flutterwave-webhook", async (req, res) => {
   console.log("Received Flutterwave webhook:", raw);
   const response = await verify(req.body.id);
 
+  console.log(response);
+
   if (!sig || sig !== FW_SECRET) {
     // This request isn't from Flutterwave; discard
-    console.log(nope);
+    console.log('nope');
     res.status(401).end();
   }
 
