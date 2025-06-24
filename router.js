@@ -99,6 +99,7 @@ router.post("/flutterwave-webhook", async (req, res) => {
     duration,
     ts,
     hash,
+    walletAddress,
   } = response.data.meta;
   const {
     amount,
@@ -121,7 +122,7 @@ router.post("/flutterwave-webhook", async (req, res) => {
   }
 
   await queueMint({
-    userWallet: params.walletAddress, // if you passed it in metadata
+    userWallet: walletAddress, // if you passed it in metadata
     domain,
     params,
     duration: duration,
