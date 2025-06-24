@@ -60,10 +60,7 @@ mintQueue.process(async (job) => {
 
   // 2) ABI-encode the paymentProof struct into bytes
   const abiCoder = new AbiCoder();
-  const proofBytes = abiCoder.encode(
-    ["string", "string"],
-    [paymentProof.txRef, paymentProof.flutterwaveId]
-  );
+ const proofBytes = crypto.randomBytes(32); // Replace with actual proof encoding logic
 
   const commitment = await contract.makeCommittment(
     registerparams.domain,
