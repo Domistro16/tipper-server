@@ -100,7 +100,8 @@ router.post("/flutterwave-webhook", async (req, res) => {
     tx_ref: txRef,
   } = response.data.meta;
   const { amount, currency, customer, id: flutterwaveId } = response.data;
-  const domain = registerparams.domain;
+  const params = JSON.parse(registerparams);
+  const domain = params.domain;
   if (!verifyHash({ domain, duration, amount, currency, txRef, ts, hash })) {
     console.log("nope2");
     return res.status(400).send("invalid payment intent");
@@ -113,9 +114,9 @@ router.post("/flutterwave-webhook", async (req, res) => {
   }
 
   await queueMint({
-    userWallet: registerparams.walletAddress, // if you passed it in metadata
+    userWallet: params.walletAddress, // if you passed it in metadata
     domain,
-    registerparams,
+    params,
     duration: parseDuration(duration),
     paymentProof: { txRef, flutterwaveId },
   });
