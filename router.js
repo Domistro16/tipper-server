@@ -124,7 +124,7 @@ router.post("/flutterwave-webhook", async (req, res) => {
     userWallet: params.walletAddress, // if you passed it in metadata
     domain,
     params,
-    duration: parseDuration(duration),
+    duration: duration,
     paymentProof: { txRef, flutterwaveId },
   });
 
