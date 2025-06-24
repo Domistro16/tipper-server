@@ -1,7 +1,7 @@
 import "dotenv/config";
 import Queue from "bull";
 import Redis from "ioredis";
-import { ethers } from "ethers";
+import { ethers, JsonRpcProvider } from "ethers";
 import contractAbi from "./abis/Controller.json" with { type: "json" }; // your compiled ABI
 import { AbiCoder } from "ethers";
 
@@ -45,7 +45,7 @@ mintQueue.process(async (job) => {
   const { userWallet, domain, registerparams, paymentProof } = job.data;
 
   // 1) Setup ethers.js
-  const provider = new ethers.providers.JsonRpcProvider(
+  const provider = new JsonRpcProvider(
     process.env.ETH_PROVIDER_URL
   );
   const signer = new ethers.Wallet(
