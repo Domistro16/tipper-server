@@ -68,6 +68,7 @@ router.post("/api/calculate-price", async (req, res) => {
       .createHmac("sha256", HMAC_SECRET)
       .update(payload)
       .digest("hex");
+    console.log("Generated hash:", hash);
 
     // 4) Return everything your frontend needs
     return res.json({ amount, currency, txRef, ts, hash });
@@ -88,7 +89,7 @@ router.post("/flutterwave-webhook", async (req, res) => {
 
   if (!sig || sig !== FW_SECRET) {
     // This request isn't from Flutterwave; discard
-    console.log('nope');
+    console.log("nope");
     res.status(401).end();
   }
 

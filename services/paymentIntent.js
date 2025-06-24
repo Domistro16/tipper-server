@@ -117,6 +117,8 @@ export function verifyHash({ domain, duration, amount, currency, txRef, ts, hash
   const expected = crypto.createHmac('sha256', HMAC_SECRET)
                          .update(payload)
                          .digest('hex')
+
+  console.log("Expected hash:", expected);
   // timingSafeEqual guards against subtle timing attacks
   return crypto.timingSafeEqual(
     Buffer.from(expected, 'hex'),
