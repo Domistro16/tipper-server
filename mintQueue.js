@@ -1,7 +1,7 @@
 import "dotenv/config";
 import Queue from "bull";
 import Redis from "ioredis";
-import { ethers, JsonRpcProvider } from "ethers";
+import { ethers, JsonRpcProvider, hexlify, randomBytes } from "ethers";
 import contractAbi from "./abis/Controller.json" with { type: "json" }; // your compiled ABI
 import { AbiCoder } from "ethers";
 
@@ -60,7 +60,11 @@ mintQueue.process(async (job) => {
 
   // 2) ABI-encode the paymentProof struct into bytes
   const abiCoder = new AbiCoder();
- const proofBytes = ethers.randomBytes(32).toString('hex'); // Replace with actual proof encoding logic
+    const secretBytes = randomBytes(32);
+// Convert to a hex string, typed as `0x${string}`
+const proofBytes = hexlify(secretBytes);
+
+console.log(`🟡 [mintQueue] Using proofBytes: ${proofBytes}`);
 
   const commitment = await contract.makeCommitment(
     domain,
@@ -74,6 +78,8 @@ mintQueue.process(async (job) => {
     registerparams.lifetime
   );
 
+    console.log(`🟡 [mintQueue] commitment: commitment=${commitment}`);
+
   await contract.commit(commitment);
   const waitMs = Number(minAge) * 1000 + 5000;
   console.log(`waiting ${waitMs / 1000}s for commitment age...`);
@@ -82,8 +88,8 @@ mintQueue.process(async (job) => {
   // 3) Call the mint function
   console.log(`🟡 [mintQueue] Minting domain="${domain}" for ${userWallet}`);
   const tx = await contract.registerWithCard(
-    registerparams.domain,
-    registerparams.walletAddress,
+    domain,
+    userWallet,
     registerparams.duration,
     proofBytes,
     registerparams.resolver,
