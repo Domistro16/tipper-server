@@ -68,6 +68,7 @@ router.post("/api/calculate-price", async (req, res) => {
 router.post("/flutterwave-webhook", async (req, res) => {
   const sig = req.headers["verif-hash"];
   const raw = JSON.stringify(req.body);
+  console.log('Received Flutterwave webhook:', raw);
 
   if (!verifyFlutterwaveSignature(raw, sig)) {
     return res.status(400).send("invalid signature");
