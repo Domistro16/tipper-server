@@ -38,6 +38,8 @@ async function getRates() {
  */
 export async function computeAmount(domain, duration, currencyCode, lifetime) {
   // 1) Base USD price logic (you choose your algorithm)
+
+  console.log(domain)
   const provider = new ethers.JsonRpcProvider(
     process.env.ETH_PROVIDER_URL
   );
@@ -52,15 +54,22 @@ export async function computeAmount(domain, duration, currencyCode, lifetime) {
     provider
   )
   const priceData = await controller.rentPrice(domain, duration, lifetime);
+
+  console.log("Price data:", priceData.base, priceData.premium);
   
   const bnb = (Number(priceData.base) + Number(priceData.premium)) / 1e18
-  const { answer} = priceOracle.latestRoundData()
-  const baseUsd = bnb * (Number(answer) / 1e8)
+  console.log("BNB price:", bnb);
+  const data = await priceOracle.latestRoundData();
+  console.log(data)
+  const baseUsd = bnb * (Number(data.answer) / 1e8)
   // 2) If they want USD, just return it
+
+  console.log("Base USD price:", baseUsd);
   if (currencyCode === "USD") {
     return Math.ceil(baseUsd);
   }
 
+  console.log('trees')
   // 3) Otherwise fetch rates and convert
   const rates = await getRates();
   const rate = rates[currencyCode];
@@ -68,6 +77,7 @@ export async function computeAmount(domain, duration, currencyCode, lifetime) {
     throw new Error(`Unsupported currency: ${currencyCode}`);
   }
 
+  console.log(rate);
   // Multiply + round up to the nearest whole unit
   return Math.ceil(baseUsd * rate);
 }
