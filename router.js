@@ -15,6 +15,7 @@ import crypto from "crypto";
 import { verifyHash, computeAmount } from "./services/paymentIntent.js";
 import { queueMint, isTxRefUsed, markTxRefUsed } from "./mintQueue.js";
 import "dotenv/config";
+import axios from "axios";
 
 const pinata = new PinataSDK({
   pinataJwt: `${process.env.JWT}`,
@@ -32,6 +33,17 @@ const HMAC_SECRET = process.env.PAYMENT_HMAC_SECRET;
 function verifyFlutterwaveSignature(raw, sig) {
   const comp = crypto.createHmac("sha256", FW_SECRET).update(raw).digest("hex");
   return crypto.timingSafeEqual(Buffer.from(comp), Buffer.from(sig));
+}
+
+async function verify(flwId) {
+  const url = `https://api.flutterwave.com/v3/transactions/${flwId}/verify`;
+  const resp = await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+    },
+  });
+  // now resp.data.data.meta has your original meta
+  return resp.data;
 }
 
 router.post("/api/calculate-price", async (req, res) => {
@@ -68,10 +80,13 @@ router.post("/api/calculate-price", async (req, res) => {
 router.post("/flutterwave-webhook", async (req, res) => {
   const sig = req.headers["verif-hash"];
   const raw = JSON.stringify(req.body);
-  console.log('Received Flutterwave webhook:', raw);
+  console.log("Received Flutterwave webhook:", raw);
+  const response = await verify(req.body.id);
 
   if (!verifyFlutterwaveSignature(raw, sig)) {
+    console.log("nope");
     return res.status(400).send("invalid signature");
+    console.log("nope");
   }
 
   const {
@@ -80,15 +95,18 @@ router.post("/flutterwave-webhook", async (req, res) => {
     ts,
     hash,
     tx_ref: txRef,
-  } = req.body.data.meta;
-  const { amount, currency, customer, id: flutterwaveId } = req.body.data;
+  } = response.data.meta;
+  const { amount, currency, customer, id: flutterwaveId } = response.data;
   const domain = registerparams.domain;
   if (!verifyHash({ domain, duration, amount, currency, txRef, ts, hash })) {
+    console.log("nope2");
     return res.status(400).send("invalid payment intent");
   }
 
   if (await isTxRefUsed(txRef)) {
+    console.log("nope3");
     return res.status(400).send("duplicate");
+    console.log("nope3");
   }
 
   await queueMint({
