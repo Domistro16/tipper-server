@@ -1,58 +1,56 @@
 import { Network, Alchemy } from "alchemy-sdk";
 import Web3 from "web3";
-import "dotenv/config"
-  // Main function to calculate total BNB value
-  const web3 = new Web3('https://bsc-dataseed.binance.org/');
-  const settings = {
-    apiKey: process.env.VITE_KEY, // Replace with your Alchemy API Key.
-    network: Network.BNB_MAINNET, // Replace with your network.
-  };
-  const alchemy = new Alchemy(settings);
+import "dotenv/config";
+// Main function to calculate total BNB value
+const web3 = new Web3("https://bsc-dataseed.binance.org/");
+const settings = {
+  apiKey: process.env.VITE_KEY, // Replace with your Alchemy API Key.
+  network: Network.BNB_MAINNET, // Replace with your network.
+};
+const alchemy = new Alchemy(settings);
 
-  const WHALE_STATUS = {
-    KRAKEN: { min: 15,  tag: "KRAKEN" },
-    WHALE: { min: 14, tag: "WHALE" },
-    SHARK: { min: 10, tag: "SHARK" },
-    DOLPHIN: { min: 5, tag: "DOLPHIN" },
-    FISH: { min: 0.1, tag: "FISH" }
+const WHALE_STATUS = {
+  KRAKEN: { min: 15, tag: "KRAKEN" },
+  WHALE: { min: 14, tag: "WHALE" },
+  SHARK: { min: 10, tag: "SHARK" },
+  DOLPHIN: { min: 5, tag: "DOLPHIN" },
+  FISH: { min: 0.1, tag: "FISH" },
 };
 
 const tokenAbi = [
   {
-    "constant": true,
-    "inputs": [],
-    "name": "totalSupply",
-    "outputs": [{ "name": "", "type": "uint256" }],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
+    constant: true,
+    inputs: [],
+    name: "totalSupply",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "name": "from", "type": "address" },
-      { "indexed": true, "name": "to", "type": "address" },
-      { "indexed": false, "name": "value", "type": "uint256" }
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "from", type: "address" },
+      { indexed: true, name: "to", type: "address" },
+      { indexed: false, name: "value", type: "uint256" },
     ],
-    "name": "Transfer",
-    "type": "event"
-  }
-]
-const getWhaleStatus = (balance) => { 
+    name: "Transfer",
+    type: "event",
+  },
+];
+const getWhaleStatus = (balance) => {
   if (balance < WHALE_STATUS.FISH.min || balance == Infinity) {
-      return WHALE_STATUS.FISH;
+    return WHALE_STATUS.FISH;
   } else if (balance <= WHALE_STATUS.DOLPHIN.min) {
-      return WHALE_STATUS.DOLPHIN;
+    return WHALE_STATUS.DOLPHIN;
   } else if (balance <= WHALE_STATUS.SHARK.min) {
-      return WHALE_STATUS.SHARK;
-  } else if(balance <= WHALE_STATUS.WHALE.min){
-      return WHALE_STATUS.WHALE;
+    return WHALE_STATUS.SHARK;
+  } else if (balance <= WHALE_STATUS.WHALE.min) {
+    return WHALE_STATUS.WHALE;
   } else {
-      return WHALE_STATUS.KRAKEN
+    return WHALE_STATUS.KRAKEN;
   }
 };
-
-
 
 export async function calculateTotalBNBValue(address) {
   let pageKey = null;
@@ -64,22 +62,25 @@ export async function calculateTotalBNBValue(address) {
       pageKey: pageKey,
     });
     allBalances = allBalances.concat(response.tokenBalances);
-    pageKey = response.pageKey; 
-  } while (pageKey); 
+    pageKey = response.pageKey;
+  } while (pageKey);
 
-    let values = []
-    let i = 1;
-    const nonZeroBalances = allBalances.filter((token) => {
-      return token.tokenBalance !== "0";
-    });
-  
-    let whale = [];
-    if(nonZeroBalances.length == 0){
-      return{status: 'FISH'}
-    }
-    for(const token of nonZeroBalances){
-      const tokenContract = new web3.eth.Contract(tokenAbi, token.contractAddress);
-      let balance = token.tokenBalance;
+  let values = [];
+  let i = 1;
+  const nonZeroBalances = allBalances.filter((token) => {
+    return token.tokenBalance !== "0";
+  });
+
+  let whale = [];
+  if (nonZeroBalances.length == 0) {
+    return { status: "FISH" };
+  }
+  for (const token of nonZeroBalances) {
+    const tokenContract = new web3.eth.Contract(
+      tokenAbi,
+      token.contractAddress
+    );
+    let balance = token.tokenBalance;
 
     // Get metadata of token
     const metadata = await alchemy.core.getTokenMetadata(token.contractAddress);
@@ -87,41 +88,41 @@ export async function calculateTotalBNBValue(address) {
     // Compute token balance in human-readable format
     balance = Number(balance) / Math.pow(10, metadata.decimals);
     balance = parseFloat(balance.toFixed(2));
-    
-    // Print name, balance, and symbol of token
-      let supply;
-      try {
-        supply = await tokenContract.methods.totalSupply().call();
-      } catch (error) {
-        console.error("Error fetching total supply:", error);
-        supply = 1000000000000;
-      }
-      const percerntage = (balance / Number(supply)) * 100;
 
-      const whaleStatus = getWhaleStatus(percerntage);
-      whale.push(whaleStatus.tag);
+    // Print name, balance, and symbol of token
+    let supply;
+    try {
+      supply = await tokenContract.methods.totalSupply().call();
+    } catch (error) {
+      console.error("Error fetching total supply:", error);
+      supply = 1000000000000;
+    }
+    const percerntage = (balance / Number(supply)) * 100;
+
+    const whaleStatus = getWhaleStatus(percerntage);
+    whale.push(whaleStatus.tag);
 
     values.push({
       name: metadata.name,
       balance: balance,
-      symbol: metadata.symbol
-    })
+      symbol: metadata.symbol,
+    });
     console.log(`${i++}. ${metadata.name}: ${balance} ${metadata.symbol}`);
-    }
-    let status = '';
-    if(whale){
-        if(whale.find((element) => element === "KRAKEN")){
-            status = "KRAKEN";
-    }
-    else if(whale.find((element) => element === "WHALE")){
-            status = "WHALE";
-    } else if(whale.find((element) => element === "SHARK")){
-            status = "SHARK"
-    }else if(whale.find((element) => element === "DOLPHIN")){
-            status = "DOLPHIN";
-    }else{ status = "FISH"}
-}
-
-    
-    return {status: status}
   }
+  let status = "";
+  if (whale) {
+    if (whale.find((element) => element === "KRAKEN")) {
+      status = "KRAKEN";
+    } else if (whale.find((element) => element === "WHALE")) {
+      status = "WHALE";
+    } else if (whale.find((element) => element === "SHARK")) {
+      status = "SHARK";
+    } else if (whale.find((element) => element === "DOLPHIN")) {
+      status = "DOLPHIN";
+    } else {
+      status = "FISH";
+    }
+  }
+
+  return { status: status };
+}
