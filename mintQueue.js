@@ -7,7 +7,7 @@ import { AbiCoder } from "ethers";
 
 // ─── Redis & Queue setup ───────────────────────────────────────────────────────
 const redisOpts = {
-  host: process.env.REDIS_INTERNAL_HOST || "127.0.0.1",
+  host: process.env.REDIS_HOST || "127.0.0.1",
   port: Number(process.env.REDIS_PORT) || 6379,
 };
 const redisClient = new Redis(process.env.REDIS_INTERNAL_HOST);
