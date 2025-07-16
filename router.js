@@ -16,7 +16,7 @@ import { verifyHash, computeAmount } from "./services/paymentIntent.js";
 import { queueMint, isTxRefUsed, markTxRefUsed } from "./mintQueue.js";
 import "dotenv/config";
 import axios from "axios";
-import CourseProgress from "./CourseProgress";
+import CourseProgress from "./CourseProgress.js";
 
 const pinata = new PinataSDK({
   pinataJwt: `${process.env.JWT}`,
