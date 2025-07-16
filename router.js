@@ -16,6 +16,7 @@ import { verifyHash, computeAmount } from "./services/paymentIntent.js";
 import { queueMint, isTxRefUsed, markTxRefUsed } from "./mintQueue.js";
 import "dotenv/config";
 import axios from "axios";
+import CourseProgress from "./CourseProgress";
 
 const pinata = new PinataSDK({
   pinataJwt: `${process.env.JWT}`,
@@ -45,6 +46,40 @@ async function verify(flwId) {
   // now resp.data.data.meta has your original meta
   return resp.data;
 }
+
+router.post("/progress/update", async (req, res) => {
+  const { userId, courseId, lessonIndex } = req.body;
+
+  try {
+    const progress = await CourseProgress.findOneAndUpdate(
+      { userId, courseId },
+      {
+        $addToSet: { completedLessons: lessonIndex },
+        $set: {
+          lastWatched: lessonIndex,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    res.json(progress);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update progress" });
+  }
+});
+
+// 🔍 Get Progress for a User and Course
+router.get("/progress/:userId/:courseId", async (req, res) => {
+  const { userId, courseId } = req.params;
+
+  try {
+    const progress = await CourseProgress.findOne({ userId, courseId });
+    res.json(progress || {});
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch progress" });
+  }
+});
 
 router.post("/api/calculate-price", async (req, res) => {
   const { domain, duration, currency, lifetime } = req.body;
@@ -94,13 +129,8 @@ router.post("/flutterwave-webhook", async (req, res) => {
     res.status(401).end();
   }
 
-  const {
-    registerparams,
-    duration,
-    ts,
-    hash,
-    walletAddress,
-  } = response.data.meta;
+  const { registerparams, duration, ts, hash, walletAddress } =
+    response.data.meta;
   const {
     amount,
     currency,
