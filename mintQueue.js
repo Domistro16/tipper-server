@@ -22,12 +22,22 @@ const mintQueue = new Queue("mintQueue", { redis: process.env.REDIS_HOST });
  */
 export async function queueMint(jobData) {
   console.log("Queuing mint job:", jobData);
-  return mintQueue.add(jobData, {
-    attempts: 5,
-    backoff: { type: "exponential", delay: 5000 },
-    removeOnComplete: true,
-    removeOnFail: false,
-  });
+  try {
+    const job = await mintQueue.add(jobData, {
+      attempts: 5,
+      backoff: { type: "exponential", delay: 5000 },
+      removeOnComplete: true,
+      removeOnFail: false,
+    });
+
+    console.log(`✅ Job added to queue with ID: ${job.id}`);
+    const state = await job.getState();
+console.log(`🔍 Job state is: ${state}`);
+    return job; // optionally return the job or its ID/state
+  } catch (err) {
+    console.error("❌ Failed to add job to queue:", err);
+    throw err; // allow upstream code to handle it
+  }
 }
 
 /** Returns true if this txRef has already been seen. */
