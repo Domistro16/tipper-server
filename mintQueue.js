@@ -12,9 +12,6 @@ const redisOpts = {
 };
 const redisClient = new Redis(process.env.REDIS_HOST);
 
-redisClient.on("ready", console.log("Redis client connected"));
-redisClient.on("error", (err) => console.error("Redis error:", err));
-
 const mintQueue = new Queue("mintQueue", { redis: process.env.REDIS_HOST });
 
 // ─── Exported helpers ───────────────────────────────────────────────────────────
