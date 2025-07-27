@@ -7,12 +7,14 @@ import { AbiCoder } from "ethers";
 
 // ─── Redis & Queue setup ───────────────────────────────────────────────────────
 const redisOpts = {
-  host: process.env.REDIS_HOST || "127.0.0.1",
-  port: Number(process.env.REDIS_PORT) || 6379,
+    password: process.env.REDIS_PASSWORD,
+    username: process.env.REDIS_USER_NAME
 };
-const redisClient = new Redis(process.env.REDIS_HOST);
+const redisClient = new Redis(process.env.REDIS_PORT, process.env.REDIS_HOST, {
+  password: process.env.REDIS_PASSWORD,
+  username: process.env.REDIS_USER_NAME});
 
-const mintQueue = new Queue("mintQueue", { redis: process.env.REDIS_HOST });
+const mintQueue = new Queue("mintQueue", { redis: redisOpts });
 
 // ─── Exported helpers ───────────────────────────────────────────────────────────
 

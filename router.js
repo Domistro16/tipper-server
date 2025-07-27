@@ -72,9 +72,13 @@ router.post("/progress/update", async (req, res) => {
 // 🔍 Get Progress for a User and Course
 router.get("/progress/:userId/:courseId", async (req, res) => {
   const { userId, courseId } = req.params;
-
+  
   try {
-    const progress = await CourseProgress.findOne({ userId, courseId });
+    const progress = await CourseProgress.findOne({
+      userId: userId,
+      courseId: courseId,
+    });
+    console.log(progress);
     res.json(progress || {});
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch progress" });
