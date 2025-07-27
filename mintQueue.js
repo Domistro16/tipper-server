@@ -36,7 +36,7 @@ const mintQueue = new Queue('mintqueue', { connection: {
 export async function queueMint(jobData) {
   console.log("Queuing mint job:", jobData);
   try {
-    const job = await mintQueue.add(jobData, {
+    const job = await mintQueue.add("mint", jobData, {
       attempts: 5,
       backoff: { type: "exponential", delay: 5000 },
       removeOnComplete: true,
