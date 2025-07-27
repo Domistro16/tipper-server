@@ -6,13 +6,19 @@ import contractAbi from "./abis/Controller.json" with { type: "json" }; // your 
 import { AbiCoder } from "ethers";
 
 // ─── Redis & Queue setup ───────────────────────────────────────────────────────
-const redisOpts = {
+const redisConfig = {
   host: process.env.REDIS_HOST || "127.0.0.1",
-  port: Number(process.env.REDIS_PORT) || 6379,
+  port: Number(process.env.REDIS_PORT) || 14945,
+  password: process.env.REDIS_PASSWORD, // Ensure this is set!
+  tls: {} // Add this if using Redis Cloud TLS
 };
-const redisClient = new Redis(`redis://${process.env.REDIS_HOST}`, {password: process.env.REDIS_PASSWORD });
+const redisClient = new Redis(redisConfig);
 
-const mintQueue = new Queue("mintQueue", { redis: {host: process.env.REDIS_HOST, password: process.env.REDIS_PASSWORD} });
+const mintQueue = new Queue("mintQueue", { redis: redisConfig });
+
+
+   redisClient.on('connect', () => console.log('Redis client connected'));
+   redisClient.on('error', (err) => console.error('Redis client error', err));
 
 // ─── Exported helpers ───────────────────────────────────────────────────────S────
 
