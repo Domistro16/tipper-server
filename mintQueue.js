@@ -72,7 +72,7 @@ new Worker(
     console.log(`🟡 [mintWorker] Processing job for domain: ${domain}`);
 
     // 1) Setup ethers.js
-    const provider = new ethers.providers.JsonRpcProvider(process.env.ETH_PROVIDER_URL);
+    const provider = new JsonRpcProvider(process.env.ETH_PROVIDER_URL);
     const signer = new ethers.Wallet(process.env.BACKEND_WALLET_PRIVATE_KEY, provider);
     const contract = new ethers.Contract(process.env.MINT_CONTRACT_ADDRESS, contractAbi, signer);
 
