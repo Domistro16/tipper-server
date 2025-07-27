@@ -4,6 +4,7 @@ import Redis from "ioredis";
 import { ethers, JsonRpcProvider, hexlify, randomBytes } from "ethers";
 import contractAbi from "./abis/Controller.json" with { type: "json" }; // your compiled ABI
 import { AbiCoder } from "ethers";
+import reverseAbi from "./abis/Reverse.json" with { type: "json" }; // your reverse ABI
 
 // ─── Redis & Queue setup ───────────────────────────────────────────────────────
 const redisConfig = {
@@ -75,7 +76,7 @@ new Worker(
     const provider = new JsonRpcProvider(process.env.ETH_PROVIDER_URL);
     const signer = new ethers.Wallet(process.env.BACKEND_WALLET_PRIVATE_KEY, provider);
     const contract = new ethers.Contract(process.env.MINT_CONTRACT_ADDRESS, contractAbi, signer);
-
+    const reverse = new ethers.Contract(process.env.REVERSE, reverseAbi, signer);
     console.log('umm:', userWallet, domain, registerparams);
 
     // 2) Encode proof
@@ -125,6 +126,17 @@ new Worker(
     const receipt = await tx.wait();
     console.log(`✅ [mintWorker] Tx confirmed in block ${receipt.blockNumber}`);
 
+    if(registerparams.reverseRecord == true) {
+    const tx2 = await reverse.setNameForAddr(
+      userWallet,
+      userWallet,
+      registerparams.resolver,
+      `${domain}.creator`
+    )
+
+    const tx2Receipt = await tx2.wait();
+    console.log(`✅ [mintWorker] Reverse record set in block ${tx2Receipt.blockNumber}`);
+  }
     return receipt;
   },
   {
