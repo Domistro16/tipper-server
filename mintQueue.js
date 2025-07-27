@@ -22,6 +22,13 @@ const mintQueue = new Queue("mintQueue", { redis: process.env.REDIS_HOST });
    redisClient.on('connect', () => console.log('Redis client connected'));
    redisClient.on('error', (err) => console.error('Redis client error', err));
 
+   mintQueue.on('active', (job) => {
+     console.log(`Job ${job.id} is now active`);
+    });
+    mintQueue.on('waiting', (jobId) => {
+      console.log(`Job ${jobId} is waiting to be processed`);
+    });
+
 // ─── Exported helpers ───────────────────────────────────────────────────────S────
 
 /**
