@@ -9,9 +9,11 @@ import { AbiCoder } from "ethers";
 const redisConfig = {
   host: process.env.REDIS_HOST || "127.0.0.1",
   port: Number(process.env.REDIS_PORT) || 14945,
+  username: 'default', 
   password: process.env.REDIS_PASSWORD, // Ensure this is set!
   tls: {} // Add this if using Redis Cloud TLS
 };
+
 const redisClient = new Redis(redisConfig);
 
 const mintQueue = new Queue("mintQueue", { redis: redisConfig });
