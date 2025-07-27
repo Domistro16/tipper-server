@@ -14,9 +14,9 @@ const redisConfig = {
   tls: {} // Add this if using Redis Cloud TLS
 };
 
-const redisClient = new Redis(redisConfig);
+const redisClient = new Redis(process.env.REDIS_HOST);
 
-const mintQueue = new Queue("mintQueue", { redis: redisConfig });
+const mintQueue = new Queue("mintQueue", { redis: process.env.REDIS_HOST });
 
 
    redisClient.on('connect', () => console.log('Redis client connected'));
