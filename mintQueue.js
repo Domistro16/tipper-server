@@ -21,6 +21,7 @@ const mintQueue = new Queue("mintQueue", { redis: process.env.REDIS_HOST });
  * @param {{ userWallet: string, domain: string, duration: number, paymentProof: { txRef: string, flutterwaveId: string } }} jobData
  */
 export async function queueMint(jobData) {
+  console.log("Queuing mint job:", jobData);
   return mintQueue.add(jobData, {
     attempts: 5,
     backoff: { type: "exponential", delay: 5000 },
@@ -45,6 +46,7 @@ mintQueue.process(async (job) => {
   const { userWallet, domain, params: registerparams, paymentProof } = job.data;
 
   // 1) Setup ethers.js
+  console.log(`🟡 [mintQueue] Processing job for domain: ${domain}`);
   const provider = new JsonRpcProvider(
     process.env.ETH_PROVIDER_URL
   );
@@ -58,6 +60,7 @@ mintQueue.process(async (job) => {
     signer
   );
 
+  console.log('umm:', userWallet, domain, registerparams);
   // 2) ABI-encode the paymentProof struct into bytes
   const abiCoder = new AbiCoder();
     const secretBytes = randomBytes(32);

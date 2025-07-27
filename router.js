@@ -72,7 +72,7 @@ router.post("/progress/update", async (req, res) => {
 // 🔍 Get Progress for a User and Course
 router.get("/progress/:userId/:courseId", async (req, res) => {
   const { userId, courseId } = req.params;
-  
+
   try {
     const progress = await CourseProgress.findOne({
       userId: userId,
@@ -149,12 +149,15 @@ router.post("/flutterwave-webhook", async (req, res) => {
     return res.status(400).send("invalid payment intent");
   }
 
+  console.log("Payment verified:", domain);
+
   if (await isTxRefUsed(txRef)) {
     console.log("nope3");
     return res.status(400).send("duplicate");
     console.log("nope3");
   }
 
+  console.log("Queuing:", domain);
   await queueMint({
     userWallet: walletAddress, // if you passed it in metadata
     domain,
