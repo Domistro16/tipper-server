@@ -1,5 +1,5 @@
 import "dotenv/config";
-import Queue from "bull";
+import { Queue, Worker }from "bullmq";
 import Redis from "ioredis";
 import { ethers, JsonRpcProvider, hexlify, randomBytes } from "ethers";
 import contractAbi from "./abis/Controller.json" with { type: "json" }; // your compiled ABI
@@ -14,20 +14,18 @@ const redisConfig = {
   tls: {} // Add this if using Redis Cloud TLS
 };
 
-const redisClient = new Redis(process.env.REDIS_HOST);
+const redisClient = new Redis(process.env.REDIS_URL);
 
-const mintQueue = new Queue("mintQueue", { redis: process.env.REDIS_HOST });
+const mintQueue = new Queue('mintqueue', { connection: {
+        host: process.env.REDIS_HOST,
+        port: 6379,
+        password: process.env.REDIS_PASSWORD,
+        tls: {}
+    }});
 
 
    redisClient.on('connect', () => console.log('Redis client connected'));
    redisClient.on('error', (err) => console.error('Redis client error', err));
-
-   mintQueue.on('active', (job) => {
-     console.log(`Job ${job.id} is now active`);
-    });
-    mintQueue.on('waiting', (jobId) => {
-      console.log(`Job ${jobId} is waiting to be processed`);
-    });
 
 // ─── Exported helpers ───────────────────────────────────────────────────────S────
 
@@ -66,76 +64,78 @@ export async function markTxRefUsed(txRef) {
 }
 
 // ─── Worker: process jobs and call your contract ────────────────────────────────
+new Worker(
+  'mintqueue',
+  async (job) => {
+    const { userWallet, domain, params: registerparams, paymentProof } = job.data;
 
-mintQueue.process(async (job) => {
-  const { userWallet, domain, params: registerparams, paymentProof } = job.data;
+    console.log(`🟡 [mintWorker] Processing job for domain: ${domain}`);
 
-  // 1) Setup ethers.js
-  console.log(`🟡 [mintQueue] Processing job for domain: ${domain}`);
-  const provider = new JsonRpcProvider(
-    process.env.ETH_PROVIDER_URL
-  );
-  const signer = new ethers.Wallet(
-    process.env.BACKEND_WALLET_PRIVATE_KEY,
-    provider
-  );
-  const contract = new ethers.Contract(
-    process.env.MINT_CONTRACT_ADDRESS,
-    contractAbi,
-    signer
-  );
+    // 1) Setup ethers.js
+    const provider = new ethers.providers.JsonRpcProvider(process.env.ETH_PROVIDER_URL);
+    const signer = new ethers.Wallet(process.env.BACKEND_WALLET_PRIVATE_KEY, provider);
+    const contract = new ethers.Contract(process.env.MINT_CONTRACT_ADDRESS, contractAbi, signer);
 
-  console.log('umm:', userWallet, domain, registerparams);
-  // 2) ABI-encode the paymentProof struct into bytes
-  const abiCoder = new AbiCoder();
+    console.log('umm:', userWallet, domain, registerparams);
+
+    // 2) Encode proof
+    const abiCoder = new AbiCoder();
     const secretBytes = randomBytes(32);
-// Convert to a hex string, typed as `0x${string}`
-const proofBytes = hexlify(secretBytes);
+    const proofBytes = hexlify(secretBytes);
 
-console.log(`🟡 [mintQueue] Using proofBytes: ${proofBytes}`);
+    console.log(`🟡 [mintWorker] Using proofBytes: ${proofBytes}`);
 
-  const commitment = await contract.makeCommitment(
-    domain,
-    userWallet,
-    registerparams.duration,
-    proofBytes,
-    registerparams.resolver,
-    registerparams.data,
-    registerparams.reverseRecord,
-    registerparams.ownerControlledFuses,
-    registerparams.lifetime
-  );
+    const commitment = await contract.makeCommitment(
+      domain,
+      userWallet,
+      registerparams.duration,
+      proofBytes,
+      registerparams.resolver,
+      registerparams.data,
+      registerparams.reverseRecord,
+      registerparams.ownerControlledFuses,
+      registerparams.lifetime
+    );
 
-    console.log(`🟡 [mintQueue] commitment: commitment=${commitment}`);
+    console.log(`🟡 [mintWorker] commitment=${commitment}`);
 
-  await contract.commit(commitment);
-  const waitMs = Number(60) * 1000 + 5000;
-  console.log(`waiting ${waitMs / 1000}s for commitment age...`);
-  await new Promise((r) => setTimeout(r, waitMs));
+    await contract.commit(commitment);
+    const waitMs = Number(60) * 1000 + 5000;
+    console.log(`waiting ${waitMs / 1000}s for commitment age...`);
+    await new Promise((r) => setTimeout(r, waitMs));
 
-  // 3) Call the mint function
-  console.log(`🟡 [mintQueue] Minting domain="${domain}" for ${userWallet}`);
-  const tx = await contract.registerWithCard(
-    domain,
-    userWallet,
-    registerparams.duration,
-    proofBytes,
-    registerparams.resolver,
-    registerparams.data,
-    registerparams.reverseRecord,
-    registerparams.ownerControlledFuses,
-    registerparams.lifetime,
-    registerparams.referree
-  );
-  console.log(`🟡 [mintQueue] Tx sent: ${tx.hash}`);
+    // 3) Register
+    console.log(`🟡 [mintWorker] Minting domain="${domain}" for ${userWallet}`);
+    const tx = await contract.registerWithCard(
+      domain,
+      userWallet,
+      registerparams.duration,
+      proofBytes,
+      registerparams.resolver,
+      registerparams.data,
+      registerparams.reverseRecord,
+      registerparams.ownerControlledFuses,
+      registerparams.lifetime,
+      registerparams.referree
+    );
 
-  // 4) Wait for confirmation
-  const receipt = await tx.wait();
-  console.log(`✅ [mintQueue] Tx confirmed in block ${receipt.blockNumber}`);
+    console.log(`🟡 [mintWorker] Tx sent: ${tx.hash}`);
 
-  return Promise.resolve();
-});
+    // 4) Wait for confirmation
+    const receipt = await tx.wait();
+    console.log(`✅ [mintWorker] Tx confirmed in block ${receipt.blockNumber}`);
 
+    return receipt;
+  },
+  {
+    connection: {
+        host: process.env.REDIS_HOST,
+        port: 6379,
+        password: process.env.REDIS_PASSWORD,
+        tls: {}
+    },
+  }
+); 
 // (Optional) handle errors / logging
 mintQueue.on("failed", (job, err) => {
   console.error(`❌ [mintQueue] Job ${job.id} failed:`, err);
