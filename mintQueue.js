@@ -126,7 +126,7 @@ new Worker(
     console.log(`✅ [mintWorker] Tx confirmed in block ${receipt.blockNumber}`);
 
     if(registerparams.reverseRecord == true) {
-      const set1 = reverse.setController(
+      const set1 = await reverse.setController(
         userWallet,
         true
       )
@@ -139,7 +139,7 @@ new Worker(
     )
 
     const tx2Receipt = await tx2.wait();
-    const set2 = reverse.setController(
+    const set2 = await reverse.setController(
         userWallet,
         false
       )
