@@ -80,7 +80,6 @@ new Worker(
     console.log('umm:', userWallet, domain, registerparams);
 
     // 2) Encode proof
-    const abiCoder = new AbiCoder();
     const secretBytes = randomBytes(32);
     const proofBytes = hexlify(secretBytes);
 
@@ -127,6 +126,11 @@ new Worker(
     console.log(`✅ [mintWorker] Tx confirmed in block ${receipt.blockNumber}`);
 
     if(registerparams.reverseRecord == true) {
+      const set1 = reverse.setController(
+        userWallet,
+        true
+      )
+    await set1.wait();
     const tx2 = await reverse.setNameForAddr(
       userWallet,
       userWallet,
@@ -135,6 +139,11 @@ new Worker(
     )
 
     const tx2Receipt = await tx2.wait();
+    const set2 = reverse.setController(
+        userWallet,
+        false
+      )
+    await set2.wait();
     console.log(`✅ [mintWorker] Reverse record set in block ${tx2Receipt.blockNumber}`);
   }
     return receipt;
