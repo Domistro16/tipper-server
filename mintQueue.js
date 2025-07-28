@@ -130,7 +130,7 @@ new Worker(
         userWallet,
         true
       )
-    await set1.wait();
+    const setreceipt = await set1.wait();
     const tx2 = await reverse.setNameForAddr(
       userWallet,
       userWallet,
@@ -143,7 +143,7 @@ new Worker(
         userWallet,
         false
       )
-    await set2.wait();
+    const set2receipt = await set2.wait();
     console.log(`✅ [mintWorker] Reverse record set in block ${tx2Receipt.blockNumber}`);
   }
     return receipt;
