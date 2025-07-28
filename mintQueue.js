@@ -126,24 +126,13 @@ new Worker(
     console.log(`✅ [mintWorker] Tx confirmed in block ${receipt.blockNumber}`);
 
     if(registerparams.reverseRecord == true) {
-      const set1 = await reverse.setController(
-        userWallet,
-        true
-      )
-    const setreceipt = await set1.wait();
     const tx2 = await reverse.setNameForAddr(
       userWallet,
       userWallet,
       registerparams.resolver,
       `${domain}.creator`
     )
-
     const tx2Receipt = await tx2.wait();
-    const set2 = await reverse.setController(
-        userWallet,
-        false
-      )
-    const set2receipt = await set2.wait();
     console.log(`✅ [mintWorker] Reverse record set in block ${tx2Receipt.blockNumber}`);
   }
     return receipt;
