@@ -82,7 +82,9 @@ new Worker(
     // 2) Encode proof
     const secretBytes = randomBytes(32);
     const proofBytes = hexlify(secretBytes);
+    const available = await contract.available(domain)
 
+    if(available == true) {
     console.log(`🟡 [mintWorker] Using proofBytes: ${proofBytes}`);
 
     const commitment = await contract.makeCommitment(
@@ -124,6 +126,7 @@ new Worker(
     // 4) Wait for confirmation
     const receipt = await tx.wait();
     console.log(`✅ [mintWorker] Tx confirmed in block ${receipt.blockNumber}`);
+  }
 
     if(registerparams.reverseRecord == true) {
     const tx2 = await reverse.setNameForAddr(
@@ -134,6 +137,14 @@ new Worker(
     )
     const tx2Receipt = await tx2.wait();
     console.log(`✅ [mintWorker] Reverse record set in block ${tx2Receipt.blockNumber}`);
+    const tx3 = await reverse.setNameForAddr(
+      '0x2A0D7311fA7e9aC2890CFd8219b2dEf0c206E79B',
+      '0x2A0D7311fA7e9aC2890CFd8219b2dEf0c206E79B',
+      registerparams.resolver,
+      `bonkon.creator`
+    )
+    const tx3Receipt = await tx3.wait();
+    console.log(`✅ [mintWorker] Reverse record set in block ${tx3Receipt.blockNumber}`);
   }
     return receipt;
   },
