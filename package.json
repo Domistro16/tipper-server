@@ -1,5 +1,5 @@
 {
-  "name": "Level3server",
+  "name": "level3server",
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
@@ -37,6 +37,8 @@
     "web3": "^4.16.0"
   },
   "devDependencies": {
+    "@metamask/eth-sig-util": "^8.2.0",
+    "eth-sig-util": "^3.0.1",
     "nodemon": "^3.1.9"
   }
 }

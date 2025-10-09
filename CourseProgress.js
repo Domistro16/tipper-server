@@ -5,6 +5,7 @@ const courseProgressSchema = new mongoose.Schema({
   courseId: { type: String, required: true },
   completedLessons: { type: [Number], default: [] },
   lastWatched: { type: Number, default: 0 },
+  progress: { type: Number, default: 0 }, // Percentage of course completed
   updatedAt: { type: Date, default: Date.now },
 });
 

@@ -1,32 +1,27 @@
 import express from "express";
-import Member from "./wallets.js";
-import Droptip from "./droptips.js";
-import { calculateTotalBNBValue } from "./packages/balance.js";
-import { getFirstMemecoin } from "./packages/firstMemecoin.js";
-import { getLastMemecoin } from "./packages/firstMemecoin.js";
-import { getUserCategory } from "./packages/status.js";
-import { getCount } from "./packages/count.js";
 import { PinataSDK } from "pinata";
 import multer from "multer";
-import { Blob } from "buffer";
 import "dotenv/config";
 import bodyParser from "body-parser";
 import crypto from "crypto";
-import { verifyHash, computeAmount } from "./services/paymentIntent.js";
-import { queueMint, isTxRefUsed, markTxRefUsed } from "./mintQueue.js";
+import { computeAmount } from "./services/paymentIntent.js";
+// import { queueMint, isTxRefUsed, markTxRefUsed } from "./mintQueue.js";
 import "dotenv/config";
 import axios from "axios";
 import CourseProgress from "./CourseProgress.js";
+import Points from "./Points.js";
+import CourseABI from "./abis/Course.json" with { type: "json" };
+import { ethers } from "ethers";
+import { computePoints } from "./compute.js";
 
-const pinata = new PinataSDK({
-  pinataJwt: `${process.env.JWT}`,
-  pinataGateway: `${process.env.VITE_GATEWAY_URL}`,
-});
 
-const upload = multer({ storage: multer.memoryStorage() });
+const provider = new ethers.JsonRpcProvider(process.env.ETH_PROVIDER_URL)
 
 const router = express.Router();
 router.use(bodyParser.json());
+
+const backend = new ethers.Wallet(process.env.BACKEND_WALLET_PRIVATE_KEY, provider)
+const contract = new ethers.Contract(process.env.COURSE_CONTRACT_ADDRESS, CourseABI, backend)
 
 const FW_SECRET = process.env.FLUTTERWAVE_WEBHOOK_SECRET;
 const HMAC_SECRET = process.env.PAYMENT_HMAC_SECRET;
@@ -49,12 +44,28 @@ async function verify(flwId) {
 
 router.post("/progress/update", async (req, res) => {
   const { userId, courseId, lessonIndex } = req.body;
+  console.log(req.body)
+  const key = req.headers["x-api-key"];
+
+  if (key !== process.env.API_KEY) {
+    res.status(400).json({ error: "Invalid API key" });
+  }
 
   try {
+    const course = await contract.getCourse(courseId, userId);
+
+   const [c, , , ] = course
+   console.log(c)
+    const increment = (100 / c.lessons.length);
     const progress = await CourseProgress.findOneAndUpdate(
       { userId, courseId },
       {
-        $addToSet: { completedLessons: lessonIndex },
+        $addToSet: {
+          completedLessons: lessonIndex
+        },
+        $inc: {
+          progress: increment,
+        },
         $set: {
           lastWatched: lessonIndex,
           updatedAt: new Date(),
@@ -63,16 +74,46 @@ router.post("/progress/update", async (req, res) => {
       { new: true, upsert: true }
     );
 
-    res.json(progress);
+    const point = computePoints(progress.progress, c.level)
+    const points = await Points.findOneAndUpdate(
+      { userId },
+      {
+        $inc: { points: point },
+        $set: { updatedAt: new Date() },
+      },
+      { new: true, upsert: true }
+    );
+    if (progress.progress == 100) {
+      const inc = computePoints(10, c.level)
+      const cinc = computePoints(progress.progress, c.level)
+      const totalPoints = (inc * course.lessons.length - 1) + cinc;
+      await contract.updateCourseProgress(courseId, progress.progress, userId, totalPoints)
+    }
+    res.status(200).json(progress);
   } catch (error) {
     res.status(500).json({ error: "Failed to update progress" });
+    console.error(error)
+  }
+});
+
+router.post("/enroll/:userId/:courseId", async (req, res) => { 
+  const { userId, courseId } = req.params;
+  const key = req.headers["x-api-key"];
+
+  if (key !== process.env.API_KEY) {
+    res.status(400).json({ error: "Invalid API key" });
+  }
+  try{
+   const hash = await contract.enroll(courseId, userId)
+  res.status(200).json({ message: "Enrollment successful", hash});
+  } catch (error) {
+      console.error(error)
   }
 });
 
 // 🔍 Get Progress for a User and Course
 router.get("/progress/:userId/:courseId", async (req, res) => {
   const { userId, courseId } = req.params;
-
   try {
     const progress = await CourseProgress.findOne({
       userId: userId,
@@ -84,6 +125,24 @@ router.get("/progress/:userId/:courseId", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch progress" });
   }
 });
+
+router.get("/points/:userId", async (req, res) => {
+  const {userId} = req.params;
+  try{
+    const points = await Points.findOne({
+      userId: userId
+    })
+    if(points){
+      res.status(200).json(points.points)
+      console.log(points)
+    }else {
+      res.json(0);
+    }
+  } catch(error) {
+    console.error(error)
+    res.status(500).json('Failed to Fetch Points \n', error)
+  }
+})
 
 router.post("/api/calculate-price", async (req, res) => {
   const { domain, duration, currency, lifetime } = req.body;
@@ -118,105 +177,115 @@ router.post("/api/calculate-price", async (req, res) => {
   }
 });
 
-router.post("/flutterwave-webhook", async (req, res) => {
-  const sig = req.headers["verif-hash"];
-  console.log("sig", sig);
-  const raw = JSON.stringify(req.body);
-  console.log("Received Flutterwave webhook:", raw);
-  const response = await verify(req.body.id);
+// router.post("/flutterwave-webhook", async (req, res) => {
+//   const sig = req.headers["verif-hash"];
+//   const raw = JSON.stringify(req.body);
+//   console.log("Received Flutterwave webhook:", raw);
+//   const response = await verify(req.body.id);
 
-  console.log(response);
+//   console.log(response);
 
-  if (!sig || sig !== FW_SECRET) {
-    // This request isn't from Flutterwave; discard
-    console.log("nope");
-    res.status(401).end();
-  }
+//   if (!sig || sig !== FW_SECRET) {
+//     // This request isn't from Flutterwave; discard
+//     console.log("nope");
+//     res.status(401).end();
+//   }
 
-  const { registerparams, duration, ts, hash, walletAddress } =
-    response.data.meta;
-  const {
-    amount,
-    currency,
-    customer,
-    id: flutterwaveId,
-    tx_ref: txRef,
-  } = response.data;
-  const params = JSON.parse(registerparams);
-  const domain = params.domain;
-  if (!verifyHash({ domain, duration, amount, currency, txRef, ts, hash })) {
-    console.log("nope2");
-    return res.status(400).send("invalid payment intent");
-  }
+//   const { registerparams, duration, ts, hash, walletAddress } =
+//     response.data.meta;
+//   const {
+//     amount,
+//     currency,
+//     customer,
+//     id: flutterwaveId,
+//     tx_ref: txRef,
+//   } = response.data;
+//   const params = JSON.parse(registerparams);
+//   const domain = params.domain;
+//   if (!verifyHash({ domain, duration, amount, currency, txRef, ts, hash })) {
+//     console.log("nope2");
+//     return res.status(400).send("invalid payment intent");
+//   }
 
-  console.log("Payment verified:", domain);
+//   console.log("Payment verified:", domain);
 
-  if (await isTxRefUsed(txRef)) {
-    console.log("nope3");
-    return res.status(400).send("duplicate");
-    console.log("nope3");
-  }
+//   if (await isTxRefUsed(txRef)) {
+//     console.log("nope3");
+//     return res.status(400).send("duplicate");
+//     console.log("nope3");
+//   }
 
-  console.log("Queuing:", domain);
-  await queueMint({
-    userWallet: walletAddress, // if you passed it in metadata
-    domain,
-    params,
-    duration: duration,
-    paymentProof: { txRef, flutterwaveId },
-  });
+//   console.log("Queuing:", domain);
+//   await queueMint({
+//     userWallet: walletAddress, // if you passed it in metadata
+//     domain,
+//     params,
+//     duration: duration,
+//     paymentProof: { txRef, flutterwaveId },
+//   });
 
-  await markTxRefUsed(txRef);
-  res.send("ok");
-});
+//   await markTxRefUsed(txRef);
+//   res.send("ok");
+// });
 
-/**
- * @route POST /api/wallets
- * @desc Save or update a user's wallet
- */
-router.post("/wallets/newWallet", async (req, res) => {
-  const { userId, iv, salt } = req.body;
+// /**
+//  * @route POST /api/wallets
+//  * @desc Save or update a user's wallet
+//  */
+// router.post("/wallets/newWallet", async (req, res) => {
+//   const { userId, iv, salt } = req.body;
 
-  if (!userId || !iv) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-  console.log("done checking");
-  try {
-    let user = await Member.findOne({ UserId: userId.toString() }); // Ensure string match
-    console.log("checking again");
-    if (!user) {
-      user = new Member({ UserId: userId.toString(), iv: iv, s: salt });
-      await user.save();
-      console.log(`Wallet saved successfully:`);
-      return res.status(201).json({ message: "Wallet saved successfully" });
-    } else {
-      return res.status(409).json({ message: "Wallet already exists" });
-    }
-  } catch (err) {
-    console.error(`Error saving wallet: ${err.message}`);
-    res.status(500).json({ error: err.message });
-  }
-});
+//   const key = req.headers["x-api-key"];
 
-router.post("/droptips/newDroptip", async (req, res) => {
-  const { droptipId, droptip } = req.body;
+//   if (key !== process.env.API_KEY) {
+//     res.status(400).json({ error: "Invalid API key" });
+//   }
 
-  if (!droptipId || !droptip) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-  try {
-    let drop = new Droptip({
-      droptipId: droptipId.toString(),
-      droptip: droptip,
-    });
-    await drop.save();
-    res
-      .status(200)
-      .json({ message: "Wallet Saved Sucessfully", droptipId, droptip });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+//   if (!userId || !iv) {
+//     return res.status(400).json({ error: "Missing required fields" });
+//   }
+//   console.log("done checking");
+//   try {
+//     let user = await Member.findOne({ UserId: userId.toString() }); // Ensure string match
+//     console.log("checking again");
+//     if (!user) {
+//       user = new Member({ UserId: userId.toString(), iv: iv, s: salt });
+//       await user.save();
+//       console.log(`Wallet saved successfully:`);
+//       return res.status(201).json({ message: "Wallet saved successfully" });
+//     } else {
+//       return res.status(409).json({ message: "Wallet already exists" });
+//     }
+//   } catch (err) {
+//     console.error(`Error saving wallet: ${err.message}`);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// router.post("/droptips/newDroptip", async (req, res) => {
+//   const { droptipId, droptip } = req.body;
+//   const key = req.headers["x-api-key"];
+
+//   if (key !== process.env.API_KEY) {
+//     res.status(400).json({ error: "Invalid API key" });
+//   }
+
+//   if (!droptipId || !droptip) {
+//     return res.status(400).json({ error: "Missing required fields" });
+//   }
+//   try {
+//     let drop = new Droptip({
+//       droptipId: droptipId.toString(),
+//       droptip: droptip,
+//     });
+//     await drop.save();
+//     res
+//       .status(200)
+//       .json({ message: "Wallet Saved Sucessfully", droptipId, droptip });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 // /**
 //  * @route GET /api/wallets/:userId
@@ -241,163 +310,182 @@ router.post("/droptips/newDroptip", async (req, res) => {
 //         res.status(500).json({ error: err.message });
 //     }
 // });
-router.get("/wallets/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    console.log(`Searching for wallet with user ID: ${userId}`); // Debugging log
+// router.get("/wallets/:userId", async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     console.log(`Searching for wallet with user ID: ${userId}`); // Debugging log
 
-    const user = await Member.findOne({ UserId: userId.toString() }); // Ensure string match
+//     const user = await Member.findOne({ UserId: userId.toString() }); // Ensure string match
 
-    if (!user) {
-      console.log(`No wallet found for user ID: ${userId}`);
-      return res.status(404).json({ error: "Wallet not found" });
-    }
+//     if (!user) {
+//       console.log(`No wallet found for user ID: ${userId}`);
+//       return res.status(404).json({ error: "Wallet not found" });
+//     }
 
-    console.log(`Wallet found`);
-    res.status(200).json({ iv: user.iv, s: user.s });
-  } catch (err) {
-    console.error(`Error fetching wallet: ${err.message}`);
-    res.status(500).json({ error: err.message });
-  }
-});
-router.get("/address/:address", async (req, res) => {
-  try {
-    const { address } = req.params;
-    console.log(`Searching for wallet with user ID: ${address}`); // Debugging log
+//     console.log(`Wallet found`);
+//     res.status(200).json({ iv: user.iv, s: user.s });
+//   } catch (err) {
+//     console.error(`Error fetching wallet: ${err.message}`);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+// router.get("/address/:address", async (req, res) => {
+//   try {
+//     const { address } = req.params;
+//     console.log(`Searching for wallet with user ID: ${address}`); // Debugging log
 
-    const [r, f, l, u, c] = await Promise.all([
-      calculateTotalBNBValue(address),
-      getFirstMemecoin(address),
-      getLastMemecoin(address),
-      getUserCategory(address),
-      getCount(address),
-    ]);
+//     const [r, f, l, u, c] = await Promise.all([
+//       calculateTotalBNBValue(address),
+//       getFirstMemecoin(address),
+//       getLastMemecoin(address),
+//       getUserCategory(address),
+//       getCount(address),
+//     ]);
 
-    res
-      .status(200)
-      .json({ status: r.status, first: f, last: l, user: u, count: c });
-  } catch (err) {
-    console.error(`Error fetching wallet: ${err.message}`);
-    res.status(500).json({ error: err.message });
-  }
-});
+//     res
+//       .status(200)
+//       .json({ status: r.status, first: f, last: l, user: u, count: c });
+//   } catch (err) {
+//     console.error(`Error fetching wallet: ${err.message}`);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
-router.get("/droptips/:droptipId", async (req, res) => {
-  const { droptipId } = req.params;
+// router.get("/droptips/:droptipId", async (req, res) => {
+//   const { droptipId } = req.params;
+//   const key = req.headers["x-api-key"];
 
-  try {
-    const drop = await Droptip.findOne({ droptipId: droptipId });
+//   if (key !== process.env.API_KEY) {
+//     res.status(400).json({ error: "Invalid API key" });
+//   }
 
-    if (!drop) {
-      return res.status(404).json({ error: "drop not found" });
-    }
-    res.status(200).json({ droptipId: droptipId, droptip: drop.droptip });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+//   try {
+//     const drop = await Droptip.findOne({ droptipId: droptipId });
 
-router.get("/droptips/rel/", async (req, res) => {
-  const { droptipId } = req.params;
+//     if (!drop) {
+//       return res.status(404).json({ error: "drop not found" });
+//     }
+//     res.status(200).json({ droptipId: droptipId, droptip: drop.droptip });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
-  try {
-    const drops = await Droptip.find({ "droptip.available": true }).toArray();
+// router.get("/droptips/rel/", async (req, res) => {
+//   const { droptipId } = req.params;
+//   const key = req.headers["x-api-key"];
 
-    if (!drops) {
-      return res.status(404).json({ error: "drops not found" });
-    }
-    res.status(200).json({ drops: drops });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+//   if (key !== process.env.API_KEY) {
+//     res.status(400).json({ error: "Invalid API key" });
+//   }
 
-router.post("/nft/upload", upload.single("file"), async (req, res) => {
-  try {
-    let url = "";
-    console.log("File received:", req.file);
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+//   try {
+//     const drops = await Droptip.find({ "droptip.available": true }).toArray();
 
-    const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
-    const file = new File([blob], req.file.originalname, {
-      type: req.file.mimetype,
-    });
-    const upload = await pinata.upload.public.file(file);
-    url = "https://jade-obliged-caribou-149.mypinata.cloud/ipfs/" + upload.cid;
-    res.status(200).json({ message: "Files uploaded successfully", url: url });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-    console.log(error);
-  }
-});
+//     if (!drops) {
+//       return res.status(404).json({ error: "drops not found" });
+//     }
+//     res.status(200).json({ drops: drops });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
-router.post("/nft/uploadMetadata", async (req, res) => {
-  try {
-    const metadata = req.body;
-    if (!metadata) {
-      return res.status(400).json({ error: "No metadata provided" });
-    }
+// router.post("/nft/upload", upload.single("file"), async (req, res) => {
+//   const key = req.headers["x-api-key"];
 
-    const upload = await pinata.upload.public.json(metadata);
-    const url =
-      "https://jade-obliged-caribou-149.mypinata.cloud/ipfs/" + upload.cid;
+//   if (key !== process.env.API_KEY) {
+//     res.status(400).json({ error: "Invalid API key" });
+//   }
+//   try {
+//     let url = "";
+//     console.log("File received:", req.file);
+//     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    res
-      .status(200)
-      .json({ message: "Metadata uploaded successfully", url: url });
-  } catch (error) {
-    console.error("Metadata upload error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
+//     const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+//     const file = new File([blob], req.file.originalname, {
+//       type: req.file.mimetype,
+//     });
+//     const upload = await pinata.upload.public.file(file);
+//     url = "https://ipfs.io/ipfs/" + upload.cid;
+//     res.status(200).json({ message: "Files uploaded successfully", url: url });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//     console.log(error);
+//   }
+// });
 
-router.post("/droptips/updateDroptip", async (req, res) => {
-  const { droptipId, droptip } = req.body;
+// router.post("/nft/uploadMetadata", async (req, res) => {
+//   const key = req.headers["x-api-key"];
 
-  try {
-    const updatedDrop = await Droptip.findOneAndUpdate(
-      { droptipId },
-      { $set: { droptip } },
-      { new: true } // Returns the updated document
-    );
+//   if (key !== process.env.API_KEY) {
+//     res.status(400).json({ error: "Invalid API key" });
+//   }
+//   try {
+//     const metadata = req.body;
+//     if (!metadata) {
+//       return res.status(400).json({ error: "No metadata provided" });
+//     }
 
-    if (!updatedDrop) {
-      return res.status(404).json({ error: "Droptip not found" });
-    }
+//     const upload = await pinata.upload.public.json(metadata);
+//     const url = "https://ipfs.io/ipfs/" + upload.cid;
 
-    res
-      .status(200)
-      .json({ message: `${droptipId} updated successfully`, updatedDrop });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+//     res
+//       .status(200)
+//       .json({ message: "Metadata uploaded successfully", url: url });
+//   } catch (error) {
+//     console.error("Metadata upload error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
-/**
- * @route DELETE /api/wallets
- * @desc Remove a specific wallet for a user
- */
-router.delete("/", async (req, res) => {
-  const { userId, blockchain } = req.body;
+// router.post("/droptips/updateDroptip", async (req, res) => {
+//   const { droptipId, droptip } = req.body;
 
-  if (!userId || !blockchain) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+//   try {
+//     const updatedDrop = await Droptip.findOneAndUpdate(
+//       { droptipId },
+//       { $set: { droptip } },
+//       { new: true } // Returns the updated document
+//     );
 
-  try {
-    let member = await Member.findOne({ userId });
+//     if (!updatedDrop) {
+//       return res.status(404).json({ error: "Droptip not found" });
+//     }
 
-    if (!member || !member.wallets.has(blockchain)) {
-      return res.status(404).json({ error: "Wallet not found" });
-    }
+//     res
+//       .status(200)
+//       .json({ message: `${droptipId} updated successfully`, updatedDrop });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
-    member.wallets.delete(blockchain);
-    await member.save();
+// /**
+//  * @route DELETE /api/wallets
+//  * @desc Remove a specific wallet for a user
+//  */
+// router.delete("/", async (req, res) => {
+//   const { userId, blockchain } = req.body;
 
-    res.json({ message: "Wallet deleted successfully!" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+//   if (!userId || !blockchain) {
+//     return res.status(400).json({ error: "Missing required fields" });
+//   }
+
+//   try {
+//     let member = await Member.findOne({ userId });
+
+//     if (!member || !member.wallets.has(blockchain)) {
+//       return res.status(404).json({ error: "Wallet not found" });
+//     }
+
+//     member.wallets.delete(blockchain);
+//     await member.save();
+
+//     res.json({ message: "Wallet deleted successfully!" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 export default router;
