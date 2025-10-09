@@ -1,6 +1,4 @@
 import express from "express";
-import { PinataSDK } from "pinata";
-import multer from "multer";
 import "dotenv/config";
 import bodyParser from "body-parser";
 import crypto from "crypto";
@@ -97,6 +95,7 @@ router.post("/progress/update", async (req, res) => {
 });
 
 router.post("/enroll/:userId/:courseId", async (req, res) => { 
+
   const { userId, courseId } = req.params;
   const key = req.headers["x-api-key"];
 
