@@ -42,55 +42,77 @@ async function verify(flwId) {
 
 router.post("/progress/update", async (req, res) => {
   const { userId, courseId, lessonIndex } = req.body;
-  console.log(req.body)
+  console.log(req.body);
   const key = req.headers["x-api-key"];
 
   if (key !== process.env.API_KEY) {
-    res.status(400).json({ error: "Invalid API key" });
+    return res.status(400).json({ error: "Invalid API key" });
   }
 
   try {
     const course = await contract.getCourse(courseId, userId);
+    const [c, , , ] = course;
+    console.log(c);
 
-   const [c, , , ] = course
-   console.log(c)
-    const increment = (100 / c.lessons.length);
+    // Check if this lesson is already completed
+    const existingProgress = await CourseProgress.findOne({ userId, courseId });
+    const isNewLesson = !existingProgress?.completedLessons?.includes(lessonIndex);
+
+    const increment = 100 / c.lessons.length;
+
+    // Build update operations conditionally
+    const updateOps = {
+      $addToSet: {
+        completedLessons: lessonIndex
+      },
+      $set: {
+        lastWatched: lessonIndex,
+        updatedAt: new Date(),
+      },
+    };
+
+    // Only increment progress if this is a new lesson completion
+    if (isNewLesson) {
+      updateOps.$inc = { progress: increment };
+    }
+
     const progress = await CourseProgress.findOneAndUpdate(
       { userId, courseId },
-      {
-        $addToSet: {
-          completedLessons: lessonIndex
-        },
-        $inc: {
-          progress: increment,
-        },
-        $set: {
-          lastWatched: lessonIndex,
-          updatedAt: new Date(),
-        },
-      },
+      updateOps,
       { new: true, upsert: true }
     );
 
-    const point = computePoints(progress.progress, c.level)
-    const points = await Points.findOneAndUpdate(
-      { userId },
-      {
-        $inc: { points: point },
-        $set: { updatedAt: new Date() },
-      },
-      { new: true, upsert: true }
-    );
-    if (progress.progress == 100) {
-      const inc = computePoints(10, c.level)
-      const cinc = computePoints(progress.progress, c.level)
-      const totalPoints = (inc * course.lessons.length - 1) + cinc;
-      await contract.updateCourseProgress(courseId, progress.progress, userId, totalPoints)
+    // Only award points for newly completed lessons
+    if (isNewLesson) {
+      const point = computePoints(progress.progress, c.level);
+      await Points.findOneAndUpdate(
+        { userId },
+        {
+          $inc: { points: point },
+          $set: { updatedAt: new Date() },
+        },
+        { new: true, upsert: true }
+      );
     }
+
+    // Check if course is completed
+    if (progress.progress >= 100) {
+      // Fetch current points to get total
+      const userPoints = await Points.findOne({ userId });
+      const totalPoints = userPoints?.points || 0;
+      
+      await contract.updateCourseProgress(
+        courseId, 
+        100, 
+        userId, 
+        totalPoints
+      );
+    }
+    
     res.status(200).json(progress);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to update progress" });
-    console.error(error)
   }
 });
 
